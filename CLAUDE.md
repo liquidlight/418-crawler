@@ -1,0 +1,1 @@
+- Commit after each phase of work

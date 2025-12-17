@@ -277,14 +277,20 @@ export function useCrawler() {
     else {
       // Save page to database
       await db.savePage(page)
+
+      // Check if this page already exists in the database (e.g., was discovered before)
+      // If so, we need to preserve any existing inLinks that were added via inlink-update events
+      const existingPage = await db.getPage(page.url)
+      const pageToAdd = existingPage || page
+
       // Add to pages array - use markRaw to prevent circular references in reactivity
       const existingIndex = pages.value.findIndex(p => p.url === page.url)
       if (existingIndex >= 0) {
         const updated = [...pages.value]
-        updated[existingIndex] = markRaw(page)
+        updated[existingIndex] = markRaw(pageToAdd)
         pages.value = updated
       } else {
-        pages.value = [...pages.value, markRaw(page)]
+        pages.value = [...pages.value, markRaw(pageToAdd)]
       }
     }
   }
