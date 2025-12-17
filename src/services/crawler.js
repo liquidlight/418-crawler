@@ -1,0 +1,312 @@
+import { fetchWithRetry } from './fetcher.js'
+import { parsePage } from './parser.js'
+import { normalizeUrl, isSameDomain, extractDomain } from '../utils/url.js'
+import { CRAWLER_DEFAULTS } from '../utils/constants.js'
+import { CrawlState } from '../models/CrawlState.js'
+
+/**
+ * Main Crawler class - implements BFS crawling with concurrent fetching
+ */
+export class Crawler {
+  constructor(rootUrl, options = {}) {
+    // Normalize the root URL
+    this.rootUrl = normalizeUrl(rootUrl)
+
+    // Validate that root URL was normalized successfully
+    if (!this.rootUrl) {
+      throw new Error(`Invalid root URL: "${rootUrl}"`)
+    }
+
+    this.baseDomain = extractDomain(this.rootUrl)
+
+    if (!this.baseDomain) {
+      throw new Error(`Could not extract domain from URL: "${this.rootUrl}"`)
+    }
+
+    this.state = new CrawlState({
+      rootUrl: this.rootUrl,
+      baseDomain: this.baseDomain
+    })
+
+    this.maxConcurrent = options.maxConcurrent || CRAWLER_DEFAULTS.MAX_CONCURRENT
+    this.requestDelay = options.requestDelay || CRAWLER_DEFAULTS.REQUEST_DELAY
+    this.requestTimeout = options.requestTimeout || CRAWLER_DEFAULTS.REQUEST_TIMEOUT
+
+    // Event handlers
+    this.onProgress = options.onProgress || (() => {})
+    this.onPageProcessed = options.onPageProcessed || (() => {})
+    this.onError = options.onError || (() => {})
+    this.onComplete = options.onComplete || (() => {})
+
+    // Initialize queue with root URL
+    this.state.addToQueue(this.rootUrl, 0)
+  }
+
+  /**
+   * Starts the crawling process
+   */
+  async start() {
+    if (this.state.isActive) {
+      console.warn('Crawler is already running')
+      return
+    }
+
+    this.state.isActive = true
+    this.state.startTime = Date.now()
+    this.emitProgress()
+
+    try {
+      while (this.state.isActive) {
+        // Handle pause state
+        if (this.state.isPaused) {
+          await this.waitForResume()
+        }
+
+        // Process a batch of URLs concurrently
+        await this.processBatch()
+
+        // Continue until both queue is empty AND no requests are in progress
+        if (this.state.queue.length === 0 && this.state.inProgress.size === 0) {
+          break
+        }
+      }
+
+      // Crawl complete
+      this.state.isActive = false
+      this.state.totalTime = Date.now() - this.state.startTime
+      this.emitComplete()
+    } catch (error) {
+      console.error('Crawler error:', error)
+      this.state.isActive = false
+      this.onError(error)
+    }
+  }
+
+  /**
+   * Processes a batch of URLs concurrently
+   */
+  async processBatch() {
+    // Calculate how many URLs we can process
+    const availableSlots = this.maxConcurrent - this.state.inProgress.size
+    const batch = this.state.queue.splice(0, availableSlots)
+
+    if (batch.length === 0) {
+      // Wait a bit before checking again
+      await new Promise(resolve => setTimeout(resolve, 100))
+      return
+    }
+
+    // Process batch concurrently
+    const promises = batch.map(item => this.processUrl(item))
+    const results = await Promise.allSettled(promises)
+
+    // Log any failures
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`Failed to process ${batch[index].url}:`, result.reason)
+      }
+    })
+
+    // Auto-save state periodically
+    if (this.state.stats.pagesCrawled % CRAWLER_DEFAULTS.AUTO_SAVE_INTERVAL === 0) {
+      this.emitProgress()
+    }
+  }
+
+  /**
+   * Processes a single URL
+   */
+  async processUrl(item) {
+    const { url, depth } = item
+
+    // Check if already visited
+    if (this.state.isVisited(url)) {
+      return
+    }
+
+    try {
+      this.state.markVisited(url)
+      this.state.markInProgress(url)
+
+      // Fetch the page
+      const response = await fetchWithRetry(url, {
+        timeout: this.requestTimeout,
+        delay: this.requestDelay
+      })
+
+      if (!response) {
+        throw new Error('No response received from fetcher')
+      }
+
+      // Parse the page
+      const page = parsePage(url, response, this.baseDomain, depth)
+
+      // Emit page processed event
+      this.onPageProcessed(page)
+      this.state.stats.pagesCrawled++
+
+      if (response.error) {
+        this.state.stats.errors++
+      }
+
+      // Extract and queue same-domain links
+      if (page.statusCode === 200 && page.outLinks.length > 0) {
+        let discoveredCount = 0
+        for (const link of page.outLinks) {
+          const normalizedLink = normalizeUrl(link, url)
+          // Only add to queue if not already in visited or queue
+          if (normalizedLink && !this.state.isVisited(normalizedLink)) {
+            // Check if already in queue
+            const alreadyInQueue = this.state.queue.some(item => item.url === normalizedLink)
+            if (!alreadyInQueue) {
+              // Don't mark as visited yet - will be marked when actually processing
+              this.state.addToQueue(normalizedLink, depth + 1)
+              this.state.stats.pagesFound++
+              discoveredCount++
+              // Emit discovered URL
+              this.onPageProcessed({
+                type: 'url-discovered',
+                url: normalizedLink,
+                depth: depth + 1
+              })
+            }
+          }
+        }
+        // Emit progress after discovering new URLs so UI updates pending count
+        if (discoveredCount > 0) {
+          this.emitProgress()
+        }
+      }
+
+      // Update in-links for all discovered URLs
+      await this.updateInLinks(url, page.outLinks, page.externalLinks)
+    } catch (error) {
+      console.error(`Error processing ${url}:`, error)
+      this.state.stats.errors++
+      this.onError(error)
+    } finally {
+      this.state.removeInProgress(url)
+    }
+  }
+
+  /**
+   * Updates in-links for discovered URLs
+   */
+  async updateInLinks(fromUrl, outLinks, externalLinks) {
+    // All discovered links should have their in-links updated
+    const allLinks = [...outLinks, ...externalLinks]
+
+    for (const toUrl of allLinks) {
+      try {
+        // Notify about in-link discovery
+        // This will be used to update pages in the database
+        this.onPageProcessed({
+          type: 'inlink-update',
+          toUrl,
+          fromUrl
+        })
+      } catch (error) {
+        console.error(`Error updating in-links for ${toUrl}:`, error)
+      }
+    }
+  }
+
+  /**
+   * Pauses the crawler
+   */
+  pause() {
+    this.state.isPaused = true
+    this.state.pauseTime = Date.now()
+    this.emitProgress()
+  }
+
+  /**
+   * Resumes the crawler
+   */
+  resume() {
+    this.state.isPaused = false
+    this.emitProgress()
+  }
+
+  /**
+   * Stops the crawler
+   */
+  stop() {
+    this.state.isActive = false
+  }
+
+  /**
+   * Resets the crawler state
+   */
+  reset() {
+    this.state = new CrawlState({
+      rootUrl: this.rootUrl,
+      baseDomain: this.baseDomain
+    })
+    this.state.addToQueue(this.rootUrl, 0)
+  }
+
+  /**
+   * Waits for resume signal
+   */
+  async waitForResume() {
+    while (this.state.isPaused && this.state.isActive) {
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+  }
+
+  /**
+   * Gets current state
+   */
+  getState() {
+    return {
+      isActive: this.state.isActive,
+      isPaused: this.state.isPaused,
+      rootUrl: this.state.rootUrl,
+      baseDomain: this.state.baseDomain,
+      queueSize: this.state.getQueueSize(),
+      visitedCount: this.state.visited.size,
+      inProgressCount: this.state.inProgress.size,
+      stats: this.state.stats
+    }
+  }
+
+  /**
+   * Gets the list of URLs currently in the queue
+   */
+  getQueueUrls() {
+    return this.state.queue.map(item => item.url)
+  }
+
+  /**
+   * Loads crawler state (for resume functionality)
+   */
+  loadState(savedState) {
+    this.state = CrawlState.fromDB(savedState)
+  }
+
+  /**
+   * Gets serializable state for persistence
+   */
+  getSaveableState() {
+    return this.state.toJSON()
+  }
+
+  /**
+   * Emits progress event
+   */
+  emitProgress() {
+    this.onProgress(this.getState())
+  }
+
+  /**
+   * Emits complete event
+   */
+  emitComplete() {
+    this.onComplete({
+      ...this.getState(),
+      isActive: false,
+      totalTime: this.state.totalTime
+    })
+  }
+}
