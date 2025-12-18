@@ -67,13 +67,30 @@ export class Crawler {
 
         // Continue until both queue is empty AND no requests are in progress
         if (this.state.queue.length === 0 && this.state.inProgress.size === 0) {
-          console.log('BFS queue empty and no requests in progress. Crawl complete.', {
+          // Double-check: ensure we've visited all discovered pages
+          // If pagesFound > visited count, there may be URLs we haven't processed yet
+          const unvisitedCount = this.state.stats.pagesFound - this.state.visited.size
+          console.log('BFS queue empty and no requests in progress.', {
             queueLength: this.state.queue.length,
             inProgressSize: this.state.inProgress.size,
             pagesCrawled: this.state.stats.pagesCrawled,
-            pagesFound: this.state.stats.pagesFound
+            pagesFound: this.state.stats.pagesFound,
+            visitedCount: this.state.visited.size,
+            unvisitedCount: unvisitedCount
           })
-          break
+
+          if (unvisitedCount <= 0) {
+            console.log('All discovered pages have been visited. Crawl complete.')
+            break
+          } else {
+            console.warn(`Inconsistency detected: ${unvisitedCount} pages marked as found but not visited. This may indicate a queue issue.`)
+            // Wait a bit in case new URLs are still being discovered
+            await new Promise(resolve => setTimeout(resolve, 500))
+            if (this.state.queue.length === 0 && this.state.inProgress.size === 0) {
+              console.log('Still no queue items after wait. Assuming crawl is complete.')
+              break
+            }
+          }
         }
       }
 
