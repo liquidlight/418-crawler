@@ -1,5 +1,5 @@
 <template>
-  <div v-if="page" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="displayPage" class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
       <div class="modal-header">
         <h2>Page Details</h2>
@@ -9,8 +9,8 @@
       <div class="modal-body">
         <div class="detail-section">
           <h3>URL</h3>
-          <a :href="page.url" target="_blank" rel="noopener noreferrer" class="url-link">
-            {{ page.url }}
+          <a :href="displayPage.url" target="_blank" rel="noopener noreferrer" class="url-link">
+            {{ displayPage.url }}
           </a>
         </div>
 
@@ -18,17 +18,17 @@
           <div class="detail-row">
             <div class="detail-col">
               <h4>Status</h4>
-              <span :class="getStatusBadgeClass(page.statusCode)" class="badge">
-                {{ page.statusCode }}
+              <span :class="getStatusBadgeClass(displayPage.statusCode)" class="badge">
+                {{ displayPage.statusCode }}
               </span>
             </div>
             <div class="detail-col">
               <h4>File Type</h4>
-              <span class="badge badge-info">{{ page.fileType }}</span>
+              <span class="badge badge-info">{{ displayPage.fileType }}</span>
             </div>
             <div class="detail-col">
               <h4>Response Time</h4>
-              <span>{{ page.responseTime }}ms</span>
+              <span>{{ displayPage.responseTime }}ms</span>
             </div>
           </div>
         </div>
@@ -36,20 +36,20 @@
         <div class="detail-section">
           <h3>Metadata</h3>
           <div class="metadata-item">
-            <strong>Title:</strong> {{ page.title || '(none)' }}
+            <strong>Title:</strong> {{ displayPage.title || '(none)' }}
           </div>
           <div class="metadata-item">
-            <strong>H1:</strong> {{ page.h1 || '(none)' }}
+            <strong>H1:</strong> {{ displayPage.h1 || '(none)' }}
           </div>
           <div class="metadata-item">
-            <strong>Description:</strong> {{ page.metaDescription || '(none)' }}
+            <strong>Description:</strong> {{ displayPage.metaDescription || '(none)' }}
           </div>
         </div>
 
         <div class="detail-section">
-          <h3>In-Links ({{ (page.inLinks || []).length }})</h3>
-          <div v-if="(page.inLinks || []).length > 0" class="links-list">
-            <div v-for="link in page.inLinks" :key="link" class="link-item">
+          <h3>In-Links ({{ (displayPage.inLinks || []).length }})</h3>
+          <div v-if="(displayPage.inLinks || []).length > 0" class="links-list">
+            <div v-for="link in displayPage.inLinks" :key="link" class="link-item">
               <button @click="navigateToPage(link)" class="link-button">
                 {{ truncateUrl(link) }}
               </button>
@@ -59,9 +59,9 @@
         </div>
 
         <div class="detail-section">
-          <h3>Out-Links ({{ (page.outLinks || []).length }})</h3>
-          <div v-if="(page.outLinks || []).length > 0" class="links-list">
-            <div v-for="link in page.outLinks" :key="link" class="link-item">
+          <h3>Out-Links ({{ (displayPage.outLinks || []).length }})</h3>
+          <div v-if="(displayPage.outLinks || []).length > 0" class="links-list">
+            <div v-for="link in displayPage.outLinks" :key="link" class="link-item">
               <button @click="navigateToPage(link)" class="link-button">
                 {{ truncateUrl(link) }}
               </button>
@@ -70,30 +70,30 @@
           <p v-else class="no-items">No out-links found</p>
         </div>
 
-        <div v-if="(page.externalLinks || []).length > 0" class="detail-section">
-          <h3>External Links ({{ (page.externalLinks || []).length }})</h3>
+        <div v-if="(displayPage.externalLinks || []).length > 0" class="detail-section">
+          <h3>External Links ({{ (displayPage.externalLinks || []).length }})</h3>
           <div class="links-list">
-            <div v-for="link in (page.externalLinks || []).slice(0, 10)" :key="link" class="link-item">
+            <div v-for="link in (displayPage.externalLinks || []).slice(0, 10)" :key="link" class="link-item">
               <a :href="link" target="_blank" rel="noopener noreferrer" class="external-link">
                 {{ truncateUrl(link) }}
               </a>
             </div>
-            <p v-if="(page.externalLinks || []).length > 10" class="more-items">
-              and {{ (page.externalLinks || []).length - 10 }} more external links...
+            <p v-if="(displayPage.externalLinks || []).length > 10" class="more-items">
+              and {{ (displayPage.externalLinks || []).length - 10 }} more external links...
             </p>
           </div>
         </div>
 
-        <div v-if="(page.assets || []).length > 0" class="detail-section">
-          <h3>Assets ({{ (page.assets || []).length }})</h3>
+        <div v-if="(displayPage.assets || []).length > 0" class="detail-section">
+          <h3>Assets ({{ (displayPage.assets || []).length }})</h3>
           <div class="links-list">
-            <div v-for="asset in (page.assets || []).slice(0, 10)" :key="asset" class="link-item">
+            <div v-for="asset in (displayPage.assets || []).slice(0, 10)" :key="asset" class="link-item">
               <a :href="asset" target="_blank" rel="noopener noreferrer" class="asset-link">
                 {{ truncateUrl(asset) }}
               </a>
             </div>
-            <p v-if="(page.assets || []).length > 10" class="more-items">
-              and {{ (page.assets || []).length - 10 }} more assets...
+            <p v-if="(displayPage.assets || []).length > 10" class="more-items">
+              and {{ (displayPage.assets || []).length - 10 }} more assets...
             </p>
           </div>
         </div>
@@ -107,6 +107,9 @@
 </template>
 
 <script>
+import { ref, watch, onMounted } from 'vue'
+import { useDatabase } from '../composables/useDatabase.js'
+
 export default {
   name: 'PageDetailModal',
   props: {
@@ -115,6 +118,28 @@ export default {
   },
   emits: ['close', 'navigate'],
   setup(props, { emit }) {
+    const db = useDatabase()
+    const displayPage = ref(props.page)
+
+    // Reload page from database when modal opens to ensure latest inlinks
+    onMounted(async () => {
+      if (props.page && props.page.url) {
+        try {
+          const freshPage = await db.getPage(props.page.url)
+          if (freshPage) {
+            displayPage.value = freshPage
+          }
+        } catch (error) {
+          console.error('Failed to load fresh page data:', error)
+        }
+      }
+    })
+
+    // Update displayPage when props.page changes
+    watch(() => props.page, (newPage) => {
+      displayPage.value = newPage
+    })
+
     function getStatusBadgeClass(status) {
       if (status >= 200 && status < 300) return 'badge-success'
       if (status >= 300 && status < 400) return 'badge-info'
@@ -135,6 +160,7 @@ export default {
     }
 
     return {
+      displayPage,
       getStatusBadgeClass,
       truncateUrl,
       navigateToPage
