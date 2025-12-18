@@ -213,9 +213,7 @@ export function useDatabase() {
    */
   async function getUncrawledPages() {
     if (!db) throw new Error('Database not initialized')
-    const tx = db.transaction('pages', 'readonly')
-    const index = tx.objectStore('pages').index('isCrawled')
-    return await index.getAll(false)
+    return await db.getAllFromIndex('pages', 'isCrawled', false)
   }
 
   return {
