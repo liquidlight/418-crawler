@@ -14,7 +14,7 @@
         />
         <button
           @click="handleSubmit"
-          :disabled="disabled || !inputUrl"
+          :disabled="disabled || !inputUrl || !inputUrl.trim()"
           class="btn btn-primary"
         >
           Crawl
