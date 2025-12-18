@@ -212,8 +212,7 @@ export function useDatabase() {
    * Get uncrawled pages
    */
   async function getUncrawledPages() {
-    if (!db) throw new Error('Database not initialized')
-    return await db.getAllFromIndex('pages', 'isCrawled', false)
+    return await getPagesByIndex('isCrawled', false)
   }
 
   return {
