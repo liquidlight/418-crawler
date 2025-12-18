@@ -5,11 +5,10 @@
       <div class="input-wrapper">
         <input
           id="url-input"
-          :value="url"
-          @input="updateUrl"
+          v-model="inputUrl"
           @keyup.enter="handleSubmit"
           placeholder="https://example.com"
-          type="url"
+          type="text"
           :disabled="disabled"
           class="url-input"
         />
@@ -29,7 +28,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { extractDomain } from '../utils/url.js'
 
 export default {
@@ -42,6 +41,13 @@ export default {
   setup(props, { emit }) {
     const inputUrl = ref(props.url || '')
 
+    // Watch for prop changes and update local state
+    watch(() => props.url, (newUrl) => {
+      if (newUrl && newUrl !== inputUrl.value) {
+        inputUrl.value = newUrl
+      }
+    })
+
     const extractedDomain = computed(() => {
       if (inputUrl.value) {
         try {
@@ -53,10 +59,6 @@ export default {
       return null
     })
 
-    function updateUrl(e) {
-      inputUrl.value = e.target.value
-    }
-
     function handleSubmit() {
       if (!props.disabled && inputUrl.value) {
         emit('crawl', inputUrl.value)
@@ -66,7 +68,6 @@ export default {
     return {
       inputUrl,
       extractedDomain,
-      updateUrl,
       handleSubmit
     }
   }
