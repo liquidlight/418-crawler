@@ -192,7 +192,7 @@ export default {
     const fileTypeCounts = computed(() => crawler.fileTypeCounts)
 
     const pendingPages = computed(() =>
-      crawler.pages.value.filter(p => !p.isCrawled)
+      crawler.pages.value.filter(p => !p.isCrawled && !p.isExternal)
     )
 
     const pendingCount = computed(() => pendingPages.value.length)

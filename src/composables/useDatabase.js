@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { openDB } from 'idb'
 import { SCHEMA, initializeSchema } from '../db/schema.js'
 import { CrawlState } from '../models/CrawlState.js'
+import { isSameDomain } from '../utils/url.js'
 
 let db = null
 
@@ -86,19 +87,22 @@ export function useDatabase() {
    * Add an in-link to a page
    * Creates the page entry if it doesn't exist
    */
-  async function addInLink(toUrl, fromUrl) {
+  async function addInLink(toUrl, fromUrl, baseDomain = '') {
     if (!db) throw new Error('Database not initialized')
 
     let page = await getPage(toUrl)
     if (!page) {
+      // Determine if this URL is external
+      const isExternal = baseDomain ? !isSameDomain(toUrl, `https://${baseDomain}`, baseDomain) : false
+
       // Create a new placeholder page
       page = {
         url: toUrl,
         normalizedUrl: toUrl,
-        domain: '',
+        domain: baseDomain,
         statusCode: null,
         isCrawled: false,
-        isExternal: false,
+        isExternal,
         inLinks: [fromUrl],
         outLinks: [],
         externalLinks: [],

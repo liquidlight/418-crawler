@@ -253,7 +253,7 @@ export function useCrawler() {
     }
     // Check if this is an in-link update
     else if (page.type === 'inlink-update') {
-      await db.addInLink(page.toUrl, page.fromUrl)
+      await db.addInLink(page.toUrl, page.fromUrl, crawlState.value.baseDomain)
       // Reload the page from database to get updated inLinks
       const updatedPage = await db.getPage(page.toUrl)
       if (updatedPage) {
