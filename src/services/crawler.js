@@ -67,6 +67,12 @@ export class Crawler {
 
         // Continue until both queue is empty AND no requests are in progress
         if (this.state.queue.length === 0 && this.state.inProgress.size === 0) {
+          console.log('BFS queue empty and no requests in progress. Crawl complete.', {
+            queueLength: this.state.queue.length,
+            inProgressSize: this.state.inProgress.size,
+            pagesCrawled: this.state.stats.pagesCrawled,
+            pagesFound: this.state.stats.pagesFound
+          })
           break
         }
       }
@@ -109,6 +115,7 @@ export class Crawler {
 
     // Auto-save state periodically
     if (this.state.stats.pagesCrawled % CRAWLER_DEFAULTS.AUTO_SAVE_INTERVAL === 0) {
+      console.debug(`Progress: crawled=${this.state.stats.pagesCrawled}, found=${this.state.stats.pagesFound}, queue=${this.state.queue.length}, inProgress=${this.state.inProgress.size}`)
       this.emitProgress()
     }
   }
@@ -175,7 +182,14 @@ export class Crawler {
         // Emit progress after discovering new URLs so UI updates pending count
         if (discoveredCount > 0) {
           this.emitProgress()
+          if (discoveredCount > 1 || this.state.stats.pagesCrawled % 20 === 0) {
+            console.log(`Discovered ${discoveredCount} URLs from ${url}. Total in queue: ${this.state.queue.length}, Total found: ${this.state.stats.pagesFound}`)
+          }
         }
+      } else if (page.statusCode !== 200) {
+        console.debug(`Skipping link extraction from ${url}: statusCode=${page.statusCode}`)
+      } else if (page.outLinks.length === 0) {
+        console.debug(`No outlinks found in ${url}`)
       }
 
       // Update in-links for all discovered URLs
