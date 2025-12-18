@@ -75,21 +75,6 @@
             </div>
           </div>
 
-          <!-- Status Code Breakdown -->
-          <div v-if="Object.keys(statusCounts).length > 0" class="status-breakdown">
-            <div class="breakdown-title">Status Codes</div>
-            <div class="status-filters">
-              <button
-                v-for="(count, code) in statusCounts"
-                :key="code"
-                @click="statusFilter = statusFilter === parseInt(code) ? null : parseInt(code)"
-                :class="{ active: statusFilter === parseInt(code) }"
-                class="status-filter-btn"
-              >
-                {{ code }} <span class="status-count">({{ count }})</span>
-              </button>
-            </div>
-          </div>
 
         </aside>
 

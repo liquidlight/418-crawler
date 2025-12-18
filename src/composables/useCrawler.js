@@ -35,18 +35,35 @@ export function useCrawler() {
     const counts = {}
     pages.value.forEach(page => {
       const code = page.statusCode
-      counts[code] = (counts[code] || 0) + 1
+      // Only count crawled pages with actual status codes (not pending pages with null)
+      if (code !== null && code !== undefined) {
+        const count = counts[code] || 0
+        counts[code] = count + 1
+      }
     })
-    return counts
+    // Create a completely new plain object with no reactive proxies
+    const plainCounts = {}
+    for (const key in counts) {
+      plainCounts[key] = Number(counts[key])
+    }
+    return plainCounts
   })
 
   const fileTypeCounts = computed(() => {
     const counts = {}
     pages.value.forEach(page => {
       const type = page.fileType
-      counts[type] = (counts[type] || 0) + 1
+      if (type) {
+        const count = counts[type] || 0
+        counts[type] = count + 1
+      }
     })
-    return counts
+    // Create a completely new plain object with no reactive proxies
+    const plainCounts = {}
+    for (const key in counts) {
+      plainCounts[key] = Number(counts[key])
+    }
+    return plainCounts
   })
 
   const queueUrls = computed(() => {
