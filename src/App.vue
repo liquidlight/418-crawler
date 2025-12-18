@@ -57,8 +57,8 @@
               <div class="stat-value">{{ crawlState.stats.pagesCrawled }}</div>
             </div>
             <div class="stat-card">
-              <div class="stat-label">Queue</div>
-              <div class="stat-value">{{ crawlState.stats.queueSize }}</div>
+              <div class="stat-label">Pending</div>
+              <div class="stat-value">{{ pendingCount }}</div>
             </div>
             <div class="stat-card">
               <div class="stat-label">Errors</div>
@@ -84,7 +84,7 @@
           <div class="tabs-header">
             <button class="tab-btn" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">Overview</button>
             <button class="tab-btn" :class="{ active: activeTab === 'results' }" @click="activeTab = 'results'">Results ({{ pages.length }})</button>
-            <button class="tab-btn" :class="{ active: activeTab === 'queue' }" @click="activeTab = 'queue'">Queue ({{ crawlState.stats.queueSize }})</button>
+            <button class="tab-btn" :class="{ active: activeTab === 'queue' }" @click="activeTab = 'queue'">Pending ({{ pendingCount }})</button>
           </div>
 
           <!-- Overview Tab -->
@@ -136,17 +136,17 @@
             />
           </div>
 
-          <!-- Queue Tab -->
+          <!-- Pending Tab -->
           <div v-if="activeTab === 'queue'" class="tab-content">
             <div class="queue-list">
-              <div v-if="queueUrls.length > 0">
-                <div v-for="(url, idx) in queueUrls" :key="idx" class="queue-item-full">
+              <div v-if="pendingPages.length > 0">
+                <div v-for="(page, idx) in pendingPages" :key="page.url" class="queue-item-full">
                   <span class="queue-num">{{ idx + 1 }}</span>
-                  <span class="queue-url">{{ url }}</span>
+                  <span class="queue-url">{{ page.url }}</span>
                 </div>
               </div>
               <div v-else class="empty-queue">
-                No URLs in queue
+                No pending URLs
               </div>
             </div>
           </div>
@@ -198,6 +198,14 @@ export default {
 
     const statusCounts = computed(() => crawler.statusCounts)
     const fileTypeCounts = computed(() => crawler.fileTypeCounts)
+
+    const pendingCount = computed(() => {
+      return crawler.pages.value.filter(p => !p.isCrawled).length
+    })
+
+    const pendingPages = computed(() => {
+      return crawler.pages.value.filter(p => !p.isCrawled)
+    })
 
     const filteredPages = computed(() => {
       if (!statusFilter.value) {
