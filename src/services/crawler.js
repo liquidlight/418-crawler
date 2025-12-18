@@ -114,8 +114,13 @@ export class Crawler {
     const batch = this.state.queue.splice(0, availableSlots)
 
     if (batch.length === 0) {
-      // Wait a bit before checking again
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // If queue is empty but we have in-progress requests, wait for them to complete
+      if (this.state.inProgress.size > 0) {
+        await new Promise(resolve => setTimeout(resolve, 50))
+      } else {
+        // Queue is empty and no in-progress requests
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
       return
     }
 

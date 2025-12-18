@@ -75,6 +75,22 @@
             </div>
           </div>
 
+          <!-- Status Code Breakdown -->
+          <div v-if="Object.keys(statusCounts).length > 0" class="status-breakdown">
+            <div class="breakdown-title">Status Codes</div>
+            <div class="status-filters">
+              <button
+                v-for="(count, code) in statusCounts"
+                :key="code"
+                @click="statusFilter = statusFilter === parseInt(code) ? null : parseInt(code)"
+                :class="{ active: statusFilter === parseInt(code) }"
+                class="status-filter-btn"
+              >
+                {{ code }} <span class="status-count">({{ count }})</span>
+              </button>
+            </div>
+          </div>
+
         </aside>
 
         <!-- Main Content -->
@@ -528,6 +544,56 @@ export default {
   color: #24292e;
   min-width: 35px;
   text-align: right;
+}
+
+.status-breakdown {
+  border-top: 1px solid #e1e4e8;
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.breakdown-title {
+  font-size: 0.75rem;
+  color: #24292e;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.status-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.status-filter-btn {
+  padding: 0.4rem 0.6rem;
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: #24292e;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-weight: 500;
+}
+
+.status-filter-btn:hover {
+  background: #e1e4e8;
+  border-color: #d1d5da;
+}
+
+.status-filter-btn.active {
+  background: #0366d6;
+  color: white;
+  border-color: #0366d6;
+}
+
+.status-count {
+  float: right;
+  color: inherit;
+  opacity: 0.8;
 }
 
 .sidebar-section {
