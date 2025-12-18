@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { extractDomain } from '../utils/url.js'
 
 export default {
@@ -39,14 +39,8 @@ export default {
   },
   emits: ['crawl'],
   setup(props, { emit }) {
+    // Use prop as initial value, but maintain independent local state
     const inputUrl = ref(props.url || '')
-
-    // Watch for prop changes and update local state
-    watch(() => props.url, (newUrl) => {
-      if (newUrl && newUrl !== inputUrl.value) {
-        inputUrl.value = newUrl
-      }
-    })
 
     const extractedDomain = computed(() => {
       if (inputUrl.value) {
@@ -60,8 +54,8 @@ export default {
     })
 
     function handleSubmit() {
-      if (!props.disabled && inputUrl.value) {
-        emit('crawl', inputUrl.value)
+      if (!props.disabled && inputUrl.value && inputUrl.value.trim()) {
+        emit('crawl', inputUrl.value.trim())
       }
     }
 
