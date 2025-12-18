@@ -21,7 +21,7 @@ export function normalizeUrl(url, baseUrl = null) {
       return null
     }
 
-    // If URL starts with //, make it http
+    // If URL starts with //, make it https
     if (urlStr.startsWith('//')) {
       urlStr = 'https:' + urlStr
     }
@@ -31,9 +31,6 @@ export function normalizeUrl(url, baseUrl = null) {
         return null
       }
       // Will be handled by URL constructor with baseUrl
-    } else if (!urlStr.match(/^https?:\/\//i)) {
-      // Add https if no protocol
-      urlStr = 'https://' + urlStr
     }
 
     // Create URL object
@@ -65,60 +62,39 @@ export function normalizeUrl(url, baseUrl = null) {
   }
 }
 
+function normalizeDomain(domain) {
+  return domain.replace(/^www\./, '').toLowerCase()
+}
+
+function safeDomainFromUrl(url) {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return null
+  }
+}
+
 /**
  * Checks if two URLs belong to the same domain
  * Handles www. variations
  */
 export function isSameDomain(url1, url2, baseDomain = null) {
-  try {
-    // Handle invalid inputs
-    if (!url1 || !url2 || typeof url1 !== 'string' || typeof url2 !== 'string') {
-      return false
-    }
-
-    // If baseDomain is provided, use it for faster comparison
-    if (baseDomain && typeof baseDomain === 'string') {
-      const normalize = (domain) => domain.replace(/^www\./, '').toLowerCase()
-      const normalizedBase = normalize(baseDomain)
-
-      // Check both URLs against the base domain
-      try {
-        let url1Domain = ''
-        let url2Domain = ''
-
-        try {
-          url1Domain = new URL(url1).hostname
-        } catch {
-          return false
-        }
-
-        try {
-          url2Domain = new URL(url2).hostname
-        } catch {
-          return false
-        }
-
-        return normalize(url1Domain) === normalizedBase && normalize(url2Domain) === normalizedBase
-      } catch {
-        return false
-      }
-    }
-
-    // Fall back to comparing the two URLs directly
-    try {
-      const urlObj1 = new URL(url1)
-      const urlObj2 = new URL(url2)
-
-      // Normalize www. variations
-      const normalize = (domain) => domain.replace(/^www\./, '').toLowerCase()
-
-      return normalize(urlObj1.hostname) === normalize(urlObj2.hostname)
-    } catch {
-      return false
-    }
-  } catch (error) {
+  if (!url1 || !url2 || typeof url1 !== 'string' || typeof url2 !== 'string') {
     return false
   }
+
+  const url1Domain = safeDomainFromUrl(url1)
+  const url2Domain = safeDomainFromUrl(url2)
+
+  if (!url1Domain || !url2Domain) return false
+
+  if (baseDomain) {
+    const normalizedBase = normalizeDomain(baseDomain)
+    return normalizeDomain(url1Domain) === normalizedBase &&
+           normalizeDomain(url2Domain) === normalizedBase
+  }
+
+  return normalizeDomain(url1Domain) === normalizeDomain(url2Domain)
 }
 
 /**

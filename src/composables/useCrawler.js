@@ -2,28 +2,29 @@ import { ref, computed, watch, markRaw, shallowRef } from 'vue'
 import { Crawler } from '../services/crawler.js'
 import { useDatabase } from './useDatabase.js'
 
+const DEFAULT_CRAWL_STATE = {
+  isActive: false,
+  isPaused: false,
+  rootUrl: '',
+  baseDomain: '',
+  queueSize: 0,
+  visitedCount: 0,
+  inProgressCount: 0,
+  startTime: 0,
+  totalTime: 0,
+  stats: {
+    pagesFound: 0,
+    pagesCrawled: 0,
+    queueSize: 0,
+    errors: 0
+  }
+}
+
 export function useCrawler() {
   const db = useDatabase()
   let crawlerInstance = null
 
-  // Reactive state
-  const crawlState = ref({
-    isActive: false,
-    isPaused: false,
-    rootUrl: '',
-    baseDomain: '',
-    queueSize: 0,
-    visitedCount: 0,
-    inProgressCount: 0,
-    startTime: 0,
-    totalTime: 0,
-    stats: {
-      pagesFound: 0,
-      pagesCrawled: 0,
-      queueSize: 0,
-      errors: 0
-    }
-  })
+  const crawlState = ref({ ...DEFAULT_CRAWL_STATE })
 
   const pages = shallowRef([])
   const error = ref(null)
@@ -52,6 +53,21 @@ export function useCrawler() {
     return crawlerInstance ? crawlerInstance.getQueueUrls() : []
   })
 
+  function updateCrawlState(state) {
+    crawlState.value = {
+      isActive: state.isActive || false,
+      isPaused: state.isPaused || false,
+      rootUrl: state.rootUrl || '',
+      baseDomain: state.baseDomain || '',
+      queueSize: state.queueSize || 0,
+      visitedCount: state.visitedCount || 0,
+      inProgressCount: state.inProgressCount || 0,
+      startTime: state.startTime || 0,
+      totalTime: state.totalTime || 0,
+      stats: { ...state.stats }
+    }
+  }
+
   /**
    * Initialize the crawler
    */
@@ -63,25 +79,7 @@ export function useCrawler() {
       // Try to load previous crawl state
       const savedState = await db.getCrawlState()
       if (savedState && savedState.rootUrl) {
-        // Restore the crawl state - only copy primitive properties to avoid circular refs
-        crawlState.value = {
-          isActive: savedState.isActive || false,
-          isPaused: savedState.isPaused || false,
-          rootUrl: savedState.rootUrl || '',
-          baseDomain: savedState.baseDomain || '',
-          queueSize: savedState.queueSize || 0,
-          visitedCount: savedState.visitedCount || 0,
-          inProgressCount: savedState.inProgressCount || 0,
-          startTime: savedState.startTime || 0,
-          totalTime: savedState.totalTime || 0,
-          stats: {
-            pagesFound: savedState.stats?.pagesFound || 0,
-            pagesCrawled: savedState.stats?.pagesCrawled || 0,
-            queueSize: savedState.stats?.queueSize || 0,
-            errors: savedState.stats?.errors || 0
-          }
-        }
-        // Load the saved pages
+        updateCrawlState(savedState)
         await loadPages()
       }
     } catch (e) {
@@ -185,24 +183,8 @@ export function useCrawler() {
   async function resetCrawl() {
     try {
       await db.clearAll()
-      pages.value = []  // Reset pages array
-      crawlState.value = {
-        isActive: false,
-        isPaused: false,
-        rootUrl: '',
-        baseDomain: '',
-        queueSize: 0,
-        visitedCount: 0,
-        inProgressCount: 0,
-        startTime: 0,
-        totalTime: 0,
-        stats: {
-          pagesFound: 0,
-          pagesCrawled: 0,
-          queueSize: 0,
-          errors: 0
-        }
-      }
+      pages.value = []
+      crawlState.value = { ...DEFAULT_CRAWL_STATE }
       crawlerInstance = null
       error.value = null
     } catch (e) {
@@ -240,18 +222,7 @@ export function useCrawler() {
    * Handle progress updates
    */
   async function handleProgress(state) {
-    crawlState.value = {
-      isActive: state.isActive,
-      isPaused: state.isPaused,
-      rootUrl: state.rootUrl,
-      baseDomain: state.baseDomain,
-      queueSize: state.queueSize,
-      visitedCount: state.visitedCount,
-      inProgressCount: state.inProgressCount,
-      startTime: state.startTime,
-      totalTime: state.totalTime,
-      stats: { ...state.stats }
-    }
+    updateCrawlState(state)
     await db.saveCrawlState(crawlerInstance.getSaveableState())
   }
 
@@ -345,18 +316,7 @@ export function useCrawler() {
    * Handle crawl complete event
    */
   async function handleComplete(state) {
-    crawlState.value = {
-      isActive: state.isActive,
-      isPaused: state.isPaused,
-      rootUrl: state.rootUrl,
-      baseDomain: state.baseDomain,
-      queueSize: state.queueSize,
-      visitedCount: state.visitedCount,
-      inProgressCount: state.inProgressCount,
-      startTime: state.startTime,
-      totalTime: state.totalTime,
-      stats: { ...state.stats }
-    }
+    updateCrawlState(state)
     await db.saveCrawlState(crawlerInstance.getSaveableState())
   }
 

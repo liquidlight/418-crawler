@@ -55,6 +55,28 @@ export function parsePage(url, response, baseDomain, depth = 0) {
   return page.toJSON()
 }
 
+function extractAssets(page, doc, baseUrl) {
+  const assetSelectors = [
+    { selector: 'img[src]', attr: 'src' },
+    { selector: 'link[rel="stylesheet"][href]', attr: 'href' },
+    { selector: 'script[src]', attr: 'src' }
+  ]
+
+  assetSelectors.forEach(({ selector, attr }) => {
+    doc.querySelectorAll(selector).forEach(el => {
+      try {
+        const src = el.getAttribute(attr)
+        const normalized = normalizeUrl(src, baseUrl)
+        if (normalized && !page.assets.includes(normalized)) {
+          page.assets.push(normalized)
+        }
+      } catch (e) {
+        // Skip invalid assets
+      }
+    })
+  })
+}
+
 /**
  * Parses HTML content to extract links, metadata, and assets
  */
@@ -103,47 +125,8 @@ function parseHtmlContent(page, htmlData, baseUrl, baseDomain) {
       }
     })
 
-    // Extract image assets
-    const images = doc.querySelectorAll('img[src]')
-    images.forEach(img => {
-      try {
-        const src = img.getAttribute('src')
-        const normalizedSrc = normalizeUrl(src, baseUrl)
-        if (normalizedSrc && !page.assets.includes(normalizedSrc)) {
-          page.assets.push(normalizedSrc)
-        }
-      } catch (e) {
-        // Skip invalid assets
-      }
-    })
-
-    // Extract stylesheet links
-    const stylesheets = doc.querySelectorAll('link[rel="stylesheet"][href]')
-    stylesheets.forEach(link => {
-      try {
-        const href = link.getAttribute('href')
-        const normalizedHref = normalizeUrl(href, baseUrl)
-        if (normalizedHref && !page.assets.includes(normalizedHref)) {
-          page.assets.push(normalizedHref)
-        }
-      } catch (e) {
-        // Skip invalid assets
-      }
-    })
-
-    // Extract script sources
-    const scripts = doc.querySelectorAll('script[src]')
-    scripts.forEach(script => {
-      try {
-        const src = script.getAttribute('src')
-        const normalizedSrc = normalizeUrl(src, baseUrl)
-        if (normalizedSrc && !page.assets.includes(normalizedSrc)) {
-          page.assets.push(normalizedSrc)
-        }
-      } catch (e) {
-        // Skip invalid assets
-      }
-    })
+    // Extract asset files (images, stylesheets, scripts)
+    extractAssets(page, doc, baseUrl)
   } catch (error) {
     console.error('HTML parsing error:', error)
     throw error

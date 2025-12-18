@@ -6,7 +6,7 @@
         <input
           id="url-input"
           :value="url"
-          @input="$emit('update:url', $event.target.value)"
+          @input="updateUrl"
           @keyup.enter="handleSubmit"
           placeholder="https://example.com"
           type="url"
@@ -15,7 +15,7 @@
         />
         <button
           @click="handleSubmit"
-          :disabled="disabled"
+          :disabled="disabled || !inputUrl"
           class="btn btn-primary"
         >
           Crawl
@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { extractDomain } from '../utils/url.js'
 
 export default {
@@ -38,12 +38,14 @@ export default {
     url: String,
     disabled: Boolean
   },
-  emits: ['update:url', 'crawl'],
+  emits: ['crawl'],
   setup(props, { emit }) {
+    const inputUrl = ref(props.url || '')
+
     const extractedDomain = computed(() => {
-      if (props.url) {
+      if (inputUrl.value) {
         try {
-          return extractDomain(props.url)
+          return extractDomain(inputUrl.value)
         } catch {
           return null
         }
@@ -51,16 +53,20 @@ export default {
       return null
     })
 
+    function updateUrl(e) {
+      inputUrl.value = e.target.value
+    }
+
     function handleSubmit() {
-      console.log('Crawl button clicked, URL:', props.url, 'Disabled:', props.disabled)
-      if (!props.disabled) {
-        console.log('Emitting crawl event with URL:', props.url)
-        emit('crawl', props.url)
+      if (!props.disabled && inputUrl.value) {
+        emit('crawl', inputUrl.value)
       }
     }
 
     return {
+      inputUrl,
       extractedDomain,
+      updateUrl,
       handleSubmit
     }
   }

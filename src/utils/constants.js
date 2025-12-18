@@ -30,3 +30,12 @@ export const CRAWLER_STATUS = {
   COMPLETE: 'complete',
   ERROR: 'error'
 }
+
+export const TABLE_CONFIG = {
+  URL_DISPLAY_MAX_LENGTH: 60,
+  URL_TRUNCATE_THRESHOLD: 57
+}
+
+export const LAYOUT = {
+  SIDEBAR_MAX_HEIGHT_OFFSET: 150
+}

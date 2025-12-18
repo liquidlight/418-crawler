@@ -73,6 +73,7 @@
 
 <script>
 import { ref, computed } from 'vue'
+import { TABLE_CONFIG } from '../utils/constants.js'
 
 export default {
   name: 'ResultsTable',
@@ -120,8 +121,8 @@ export default {
     }
 
     function truncateUrl(url) {
-      if (url.length > 60) {
-        return url.substring(0, 57) + '...'
+      if (url.length > TABLE_CONFIG.URL_DISPLAY_MAX_LENGTH) {
+        return url.substring(0, TABLE_CONFIG.URL_TRUNCATE_THRESHOLD) + '...'
       }
       return url
     }

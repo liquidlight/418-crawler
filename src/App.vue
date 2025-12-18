@@ -15,9 +15,8 @@
     <!-- URL Input Section at Top -->
     <div class="top-section">
       <CrawlerInput
-        :url="crawlUrl"
+        :url="crawlState.rootUrl"
         :disabled="crawlState.isActive"
-        @update:url="crawlUrl = $event"
         @crawl="handleStartCrawl"
       />
     </div>
@@ -166,12 +165,9 @@
 </template>
 
 <script>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useCrawler } from './composables/useCrawler.js'
-import { useFilters } from './composables/useFilters.js'
 import CrawlerInput from './components/CrawlerInput.vue'
-import CrawlerControls from './components/CrawlerControls.vue'
-import CrawlerProgress from './components/CrawlerProgress.vue'
 import ResultsStats from './components/ResultsStats.vue'
 import ResultsTable from './components/ResultsTable.vue'
 import PageDetailModal from './components/PageDetailModal.vue'
@@ -180,32 +176,25 @@ export default {
   name: 'App',
   components: {
     CrawlerInput,
-    CrawlerControls,
-    CrawlerProgress,
     ResultsStats,
     ResultsTable,
     PageDetailModal
   },
   setup() {
     const crawler = useCrawler()
-    const crawlUrl = ref('')
     const selectedPage = ref(null)
     const error = ref(null)
     const statusFilter = ref(null)
     const activeTab = ref('overview')
 
-    const filters = useFilters(crawler.pages)
-
     const statusCounts = computed(() => crawler.statusCounts)
     const fileTypeCounts = computed(() => crawler.fileTypeCounts)
 
-    const pendingCount = computed(() => {
-      return crawler.pages.value.filter(p => !p.isCrawled).length
-    })
+    const pendingPages = computed(() =>
+      crawler.pages.value.filter(p => !p.isCrawled)
+    )
 
-    const pendingPages = computed(() => {
-      return crawler.pages.value.filter(p => !p.isCrawled)
-    })
+    const pendingCount = computed(() => pendingPages.value.length)
 
     const filteredPages = computed(() => {
       if (!statusFilter.value) {
@@ -277,9 +266,6 @@ export default {
     async function handleStartCrawl(url) {
       try {
         error.value = null
-        // Keep the URL visible in the input box (it will be readonly during crawl)
-        crawlUrl.value = url
-        // Clear selected page when starting new crawl
         selectedPage.value = null
         await crawler.startCrawl(url)
       } catch (e) {
@@ -345,17 +331,17 @@ export default {
 
     return {
       crawler,
-      crawlUrl,
       selectedPage,
       error,
       statusFilter,
       activeTab,
-      filters,
       statusCounts,
       fileTypeCounts,
       crawlState: crawler.crawlState,
       pages: crawler.pages,
       filteredPages,
+      pendingPages,
+      pendingCount,
       queueUrls: crawler.queueUrls,
       progressPercent,
       crawlSpeed,
