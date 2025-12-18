@@ -106,6 +106,13 @@ function parseHtmlContent(page, htmlData, baseUrl, baseDomain) {
         // Skip anchor-only links
         if (href.trim().startsWith('#')) return
 
+        // Skip non-HTTP protocols (tel:, mailto:, javascript:, etc.)
+        const hrefLower = href.toLowerCase().trim()
+        if (hrefLower.startsWith('tel:') || hrefLower.startsWith('mailto:') ||
+            hrefLower.startsWith('javascript:') || hrefLower.startsWith('data:')) {
+          return
+        }
+
         const normalizedLink = normalizeUrl(href, baseUrl)
 
         // Only add if normalization succeeded

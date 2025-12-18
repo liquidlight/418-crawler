@@ -195,8 +195,9 @@ export class Crawler {
         this.state.stats.errors++
       }
 
-      // Extract and queue same-domain links
-      if (page.statusCode === 200 && page.outLinks.length > 0) {
+      // Extract and queue same-domain links only (not external links)
+      // External links will be tracked in-links but not have their links extracted
+      if (page.outLinks.length > 0) {
         let discoveredCount = 0
         for (const link of page.outLinks) {
           const normalizedLink = normalizeUrl(link, url)
@@ -225,10 +226,8 @@ export class Crawler {
             console.debug(`Discovered ${discoveredCount} URLs from ${url}. Total in queue: ${this.state.queue.length}, Total found: ${this.state.stats.pagesFound}`)
           }
         }
-      } else if (page.statusCode !== 200) {
-        console.debug(`Skipping link extraction from ${url}: statusCode=${page.statusCode}`)
-      } else if (page.outLinks.length === 0) {
-        console.debug(`No outlinks found in ${url}`)
+      } else {
+        console.debug(`No links found in ${url}`)
       }
 
       // Update in-links for all discovered URLs
