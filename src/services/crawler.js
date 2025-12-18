@@ -69,6 +69,23 @@ export class Crawler {
         if (this.state.queue.length === 0 && this.state.inProgress.size === 0) {
           // Double-check: ensure we've visited all discovered pages
           // If pagesFound > visited count, there may be URLs we haven't processed yet
+          // Always check for orphaned internal URLs before completing
+          // These are pages discovered through in-links but never queued for crawling
+          const orphanedUrls = await this.getOrphanedUrls()
+
+          if (orphanedUrls && orphanedUrls.length > 0) {
+            console.log(`Found ${orphanedUrls.length} orphaned internal URLs. Queuing them now...`)
+            orphanedUrls.forEach(url => {
+              if (!this.state.isVisited(url)) {
+                this.state.addToQueue(url, 0)
+                console.debug(`Queued orphaned URL: ${url}`)
+              }
+            })
+            this.emitProgress()
+            continue // Continue crawling newly queued URLs
+          }
+
+          // No orphaned URLs found, check consistency
           const unvisitedCount = this.state.stats.pagesFound - this.state.visited.size
           console.debug('BFS queue empty and no requests in progress.', {
             queueLength: this.state.queue.length,
@@ -83,24 +100,6 @@ export class Crawler {
             console.debug('All discovered pages have been visited. Crawl complete.')
             break
           } else {
-            console.warn(`Inconsistency detected: ${unvisitedCount} pages marked as found but not visited. Checking for orphaned URLs...`)
-
-            // Check for orphaned internal URLs (placeholders never queued)
-            const orphanedUrls = await this.getOrphanedUrls()
-
-            if (orphanedUrls && orphanedUrls.length > 0) {
-              console.log(`Found ${orphanedUrls.length} orphaned internal URLs. Queuing them now...`)
-              orphanedUrls.forEach(url => {
-                if (!this.state.isVisited(url)) {
-                  this.state.addToQueue(url, 0)
-                  this.state.stats.pagesFound++
-                  console.debug(`Queued orphaned URL: ${url}`)
-                }
-              })
-              this.emitProgress()
-              continue // Continue crawling newly queued URLs
-            }
-
             // Wait a bit in case new URLs are still being discovered
             await new Promise(resolve => setTimeout(resolve, 500))
             if (this.state.queue.length === 0 && this.state.inProgress.size === 0) {
