@@ -75,6 +75,22 @@
             </div>
           </div>
 
+          <!-- Status Code Filters -->
+          <div v-if="statusCodeList.length > 0" class="status-filters-sidebar">
+            <div class="status-filters-title">Status Codes</div>
+            <div class="status-filter-buttons">
+              <button
+                v-for="code in statusCodeList"
+                :key="code"
+                @click="statusFilter = statusFilter === code ? null : code"
+                :class="{ active: statusFilter === code }"
+                class="status-filter-btn"
+              >
+                <span class="code">{{ code }}</span>
+                <span class="count">({{ getStatusCount(code) }})</span>
+              </button>
+            </div>
+          </div>
 
         </aside>
 
@@ -190,6 +206,16 @@ export default {
 
     const statusCounts = computed(() => crawler.statusCounts)
     const fileTypeCounts = computed(() => crawler.fileTypeCounts)
+
+    const statusCodeList = computed(() => {
+      const codes = new Set()
+      crawler.pages.value.forEach(page => {
+        if (page.statusCode !== null && page.statusCode !== undefined) {
+          codes.add(page.statusCode)
+        }
+      })
+      return Array.from(codes).sort((a, b) => a - b)
+    })
 
     const pendingPages = computed(() =>
       crawler.pages.value.filter(p => !p.isCrawled && !p.isExternal)
@@ -330,6 +356,10 @@ export default {
       error.value = null
     }
 
+    function getStatusCount(code) {
+      return crawler.pages.value.filter(p => p.statusCode === code).length
+    }
+
     return {
       crawler,
       selectedPage,
@@ -338,6 +368,8 @@ export default {
       activeTab,
       statusCounts,
       fileTypeCounts,
+      statusCodeList,
+      getStatusCount,
       crawlState: crawler.crawlState,
       pages: crawler.pages,
       filteredPages,
@@ -573,6 +605,26 @@ export default {
   background: #0366d6;
   color: white;
   border-color: #0366d6;
+}
+
+.status-filters-sidebar {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e1e4e8;
+}
+
+.status-filters-title {
+  font-size: 0.75rem;
+  color: #24292e;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.status-filter-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .status-count {
