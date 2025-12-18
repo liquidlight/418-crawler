@@ -267,6 +267,8 @@ export class Crawler {
       queueSize: this.state.getQueueSize(),
       visitedCount: this.state.visited.size,
       inProgressCount: this.state.inProgress.size,
+      startTime: this.state.startTime,
+      totalTime: this.state.totalTime,
       stats: this.state.stats
     }
   }

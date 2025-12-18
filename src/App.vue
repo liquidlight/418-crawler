@@ -213,9 +213,21 @@ export default {
     })
 
     const crawlSpeed = computed(() => {
-      if (crawler.crawlState.value.totalTime <= 0 || crawler.crawlState.value.stats.pagesCrawled === 0) return 0
-      const seconds = crawler.crawlState.value.totalTime / 1000
-      return crawler.crawlState.value.stats.pagesCrawled / seconds
+      const pagesCrawled = crawler.crawlState.value.stats.pagesCrawled
+      if (pagesCrawled === 0) return 0
+
+      let elapsedMs
+      if (crawler.crawlState.value.isActive) {
+        // During active crawl: real-time elapsed time
+        elapsedMs = Date.now() - crawler.crawlState.value.startTime
+      } else {
+        // After completion: use final totalTime
+        elapsedMs = crawler.crawlState.value.totalTime
+      }
+
+      if (elapsedMs <= 0) return 0
+      const seconds = elapsedMs / 1000
+      return pagesCrawled / seconds
     })
 
     const statusLabel = computed(() => {

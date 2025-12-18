@@ -15,6 +15,7 @@ export function useCrawler() {
     queueSize: 0,
     visitedCount: 0,
     inProgressCount: 0,
+    startTime: 0,
     totalTime: 0,
     stats: {
       pagesFound: 0,
@@ -71,6 +72,7 @@ export function useCrawler() {
           queueSize: savedState.queueSize || 0,
           visitedCount: savedState.visitedCount || 0,
           inProgressCount: savedState.inProgressCount || 0,
+          startTime: savedState.startTime || 0,
           totalTime: savedState.totalTime || 0,
           stats: {
             pagesFound: savedState.stats?.pagesFound || 0,
@@ -192,6 +194,7 @@ export function useCrawler() {
         queueSize: 0,
         visitedCount: 0,
         inProgressCount: 0,
+        startTime: 0,
         totalTime: 0,
         stats: {
           pagesFound: 0,
@@ -245,6 +248,7 @@ export function useCrawler() {
       queueSize: state.queueSize,
       visitedCount: state.visitedCount,
       inProgressCount: state.inProgressCount,
+      startTime: state.startTime,
       totalTime: state.totalTime,
       stats: { ...state.stats }
     }
@@ -349,6 +353,7 @@ export function useCrawler() {
       queueSize: state.queueSize,
       visitedCount: state.visitedCount,
       inProgressCount: state.inProgressCount,
+      startTime: state.startTime,
       totalTime: state.totalTime,
       stats: { ...state.stats }
     }
