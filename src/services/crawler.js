@@ -83,11 +83,28 @@ export class Crawler {
             console.debug('All discovered pages have been visited. Crawl complete.')
             break
           } else {
-            console.warn(`Inconsistency detected: ${unvisitedCount} pages marked as found but not visited. This may indicate a queue issue.`)
+            console.warn(`Inconsistency detected: ${unvisitedCount} pages marked as found but not visited. Checking for orphaned URLs...`)
+
+            // Check for orphaned internal URLs (placeholders never queued)
+            const orphanedUrls = await this.getOrphanedUrls()
+
+            if (orphanedUrls && orphanedUrls.length > 0) {
+              console.log(`Found ${orphanedUrls.length} orphaned internal URLs. Queuing them now...`)
+              orphanedUrls.forEach(url => {
+                if (!this.state.isVisited(url)) {
+                  this.state.addToQueue(url, 0)
+                  this.state.stats.pagesFound++
+                  console.debug(`Queued orphaned URL: ${url}`)
+                }
+              })
+              this.emitProgress()
+              continue // Continue crawling newly queued URLs
+            }
+
             // Wait a bit in case new URLs are still being discovered
             await new Promise(resolve => setTimeout(resolve, 500))
             if (this.state.queue.length === 0 && this.state.inProgress.size === 0) {
-              console.debug('Still no queue items after wait. Assuming crawl is complete.')
+              console.debug('Still no queue items after wait. Crawl complete.')
               break
             }
           }
@@ -245,6 +262,19 @@ export class Crawler {
         console.error(`Error updating in-links for ${toUrl}:`, error)
       }
     }
+  }
+
+  /**
+   * Get list of orphaned internal URLs (discovered but not queued)
+   * Communicates with UI layer to check database
+   */
+  async getOrphanedUrls() {
+    return new Promise((resolve) => {
+      this.onPageProcessed({
+        type: 'get-orphaned-urls',
+        callback: (urls) => resolve(urls || [])
+      })
+    })
   }
 
   /**

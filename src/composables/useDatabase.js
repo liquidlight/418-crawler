@@ -87,13 +87,15 @@ export function useDatabase() {
    * Add an in-link to a page
    * Creates the page entry if it doesn't exist
    */
-  async function addInLink(toUrl, fromUrl, baseDomain = '') {
+  async function addInLink(toUrl, fromUrl, baseDomain = '', rootUrl = '') {
     if (!db) throw new Error('Database not initialized')
 
     let page = await getPage(toUrl)
     if (!page) {
-      // Determine if this URL is external
-      const isExternal = baseDomain ? !isSameDomain(toUrl, `https://${baseDomain}`, baseDomain) : false
+      // Determine if this URL is external using actual root URL for consistency
+      // Use the actual root URL from crawler state instead of reconstructing it
+      const baseUrlForCheck = rootUrl || (baseDomain ? `https://${baseDomain}` : fromUrl)
+      const isExternal = !isSameDomain(toUrl, baseUrlForCheck, baseDomain)
 
       // Create a new placeholder page
       page = {

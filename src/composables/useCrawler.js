@@ -247,13 +247,29 @@ export function useCrawler() {
    * Handle page processed event
    */
   async function handlePageProcessed(page) {
+    // Handle request for orphaned URLs (internal URLs with null statusCode)
+    if (page.type === 'get-orphaned-urls') {
+      const uncrawledPages = await db.getUncrawledPages()
+      // Filter to only internal pages with null status code
+      const orphanedUrls = uncrawledPages
+        .filter(p => !p.isExternal && p.statusCode === null)
+        .map(p => p.url)
+
+      console.debug(`Found ${orphanedUrls.length} orphaned internal URLs in database`)
+
+      if (page.callback) {
+        page.callback(orphanedUrls)
+      }
+      return
+    }
+
     // Check if this is a URL discovery event
     if (page.type === 'url-discovered') {
       addDiscoveredUrl(page.url, page.depth)
     }
     // Check if this is an in-link update
     else if (page.type === 'inlink-update') {
-      await db.addInLink(page.toUrl, page.fromUrl, crawlState.value.baseDomain)
+      await db.addInLink(page.toUrl, page.fromUrl, crawlState.value.baseDomain, crawlState.value.rootUrl)
       // Reload the page from database to get updated inLinks
       const updatedPage = await db.getPage(page.toUrl)
       if (updatedPage) {
