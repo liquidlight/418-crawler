@@ -14,7 +14,9 @@
     "start:prod": "node proxy-server/server.js & vite preview",
     "electron-dev": "concurrently \"npm run build -- --watch\" \"wait-on http://localhost:5173 && electron .\"",
     "electron-build": "vite build && electron-builder",
-    "electron-dist": "npm run build && npm run electron-build"
+    "electron-dist": "npm run build && npm run electron-build",
+    "electron-dmg": "npm run build && electron-builder --mac dmg",
+    "electron-mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "vue": "^3.4.0",
@@ -31,14 +33,17 @@
   "build": {
     "appId": "org.sitecrawler.app",
     "productName": "Site Crawler",
+    "copyright": "Copyright © 2024 Site Crawler",
     "files": [
       "dist/**/*",
       "electron-main.js",
+      "electron-is-dev.js",
       "proxy-server/**/*",
       "node_modules/**/*"
     ],
     "directories": {
-      "buildResources": "assets/icons"
+      "buildResources": "assets/icons",
+      "output": "dist-electron"
     },
     "win": {
       "target": [
@@ -66,7 +71,23 @@
         "dmg",
         "zip"
       ],
-      "icon": "assets/icons/icon.icns"
+      "icon": "assets/icons/icon.icns",
+      "category": "public.app-category.utilities"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 410,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 130,
+          "y": 150,
+          "type": "file"
+        }
+      ]
     },
     "linux": {
       "target": [
