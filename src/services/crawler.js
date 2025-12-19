@@ -205,16 +205,9 @@ export class Crawler {
             if (!alreadyInQueue) {
               this.state.addToQueue(redirectTarget, depth + 1)
               this.state.stats.pagesFound++
-              // Determine if redirect target is external
-              const isRedirectExternal = !isSameDomain(redirectTarget, this.rootUrl, this.baseDomain)
-              // Emit discovered URL event for the redirect target
-              this.onPageProcessed({
-                type: 'url-discovered',
-                url: redirectTarget,
-                depth: depth + 1,
-                isExternal: isRedirectExternal
-              })
               console.debug(`Queued redirect target: ${url} (${response.status}) -> ${redirectTarget}`)
+              // Don't emit url-discovered event - the redirect target is already in the queue
+              // and will be processed in the next iteration of the crawl loop
             }
           }
         }
