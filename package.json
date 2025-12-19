@@ -64,8 +64,8 @@
       "icon": "assets/icons/icon.icns",
       "category": "public.app-category.utilities",
       "hardenedRuntime": false,
-      "entitlements": "src/electron/entitlements.mac.plist",
-      "entitlementsInherit": "src/electron/entitlements.mac.plist"
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist"
     },
     "dmg": {
       "contents": [
