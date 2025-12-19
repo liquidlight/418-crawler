@@ -2,7 +2,7 @@
 
 ## Issue: App doesn't open or shows blank screen
 
-### Development Mode (`npm run electron-dev`)
+### Development Mode (`npm run dev`)
 
 **Symptoms:** Window doesn't appear or shows blank/white screen
 
@@ -10,7 +10,7 @@
 
 1. **Check the startup logs**
    ```bash
-   npm run electron-dev
+   npm run dev
    # Wait 10+ seconds
    # Look for error messages in the console
    ```

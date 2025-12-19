@@ -38,30 +38,21 @@ src/electron/
 - App bundle includes all necessary Electron frameworks
 - Output: `Site Crawler-0.1.0-arm64.dmg` (90MB)
 
-## Quick Build
+## npm Commands
 
-### Build macOS DMG (Apple Silicon)
-```bash
-npm run electron-dmg
-```
+### Development
+- **`npm run dev`** - Electron app with hot reload
+- **`npm run dev:web`** - Web app in browser (http://localhost:5173)
 
-Result: `dist-electron/Site Crawler-0.1.0-arm64.dmg`
+### Build
+- **`npm run build`** - Electron DMG for distribution (`dist-electron/Site Crawler-0.1.0-arm64.dmg`)
+- **`npm run build:web`** - Web files for distribution (`dist/`)
 
 This is a fully portable, self-contained application that doesn't require:
 - Node.js installation
 - npm packages
 - Any system dependencies
 - Code signing certificates (for local builds)
-
-### Development
-```bash
-npm run electron-dev
-```
-
-Starts the app with:
-- Hot reload
-- DevTools enabled
-- Full debugging capabilities
 
 ## File Changes
 

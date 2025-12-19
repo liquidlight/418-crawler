@@ -4,19 +4,10 @@
   "type": "module",
   "main": "src/electron/main.cjs",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "proxy": "node proxy-server/server.js",
-    "start": "concurrently \"npm run proxy\" \"npm run dev\"",
-    "build:prod": "vite build && npm run package",
-    "package": "node scripts/package.js",
-    "start:prod": "node proxy-server/server.js & vite preview",
-    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 --timeout 30000 && electron .\"",
-    "electron-build": "vite build && electron-builder",
-    "electron-dist": "npm run build && npm run electron-build",
-    "electron-dmg": "npm run build && electron-builder --mac dmg",
-    "electron-mac": "npm run build && electron-builder --mac"
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 --timeout 30000 && electron .\"",
+    "dev:web": "vite",
+    "build": "vite build && electron-builder --mac dmg",
+    "build:web": "vite build"
   },
   "dependencies": {
     "vue": "^3.4.0",

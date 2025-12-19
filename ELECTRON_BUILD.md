@@ -1,5 +1,36 @@
 # Electron Build Guide - Fixed & Tested ✅
 
+## Quick Start
+
+### Electron Development (Desktop App)
+```bash
+npm run dev
+```
+Launches the Electron app with:
+- Hot reload
+- DevTools enabled
+- Full debugging capabilities
+
+### Web Development (Browser)
+```bash
+npm run dev:web
+```
+Runs the app at http://localhost:5173 in your browser
+
+### Build Electron DMG (Distribution)
+```bash
+npm run build
+```
+Creates: `dist-electron/Site Crawler-0.1.0-arm64.dmg` (90MB)
+
+### Build Web (Distribution)
+```bash
+npm run build:web
+```
+Creates: `dist/` folder with static files
+
+---
+
 ## What Was Fixed
 
 The Electron setup had a critical ES module loading error that has been completely resolved:
@@ -7,30 +38,8 @@ The Electron setup had a critical ES module loading error that has been complete
 - ✅ Fixed `ERR_REQUIRE_ESM` error by using `.cjs` file extension for CommonJS files
 - ✅ Organized Electron files into `src/electron/` directory
 - ✅ Updated build configuration for proper packaging
-- ✅ Added dynamic port detection for dev server
 - ✅ Successfully builds macOS DMG for Apple Silicon (arm64)
-- ✅ Fully tested and working: `npm run electron-dev` launches the app
-
-## Quick Start
-
-### Build DMG for macOS (Apple Silicon)
-
-```bash
-npm run electron-dmg
-```
-
-Output: `dist-electron/Site Crawler-0.1.0-arm64.dmg`
-
-### Development Mode
-
-```bash
-npm run electron-dev
-```
-
-Starts:
-- Vite dev server on http://localhost:5173
-- Electron app with hot reload and DevTools
-- CORS proxy server
+- ✅ Fully tested and working
 
 ## File Structure
 
@@ -49,14 +58,14 @@ The app automatically handles port allocation:
 **Dev Server:** Uses port 5173 with fallback to 5174-5177
 **Proxy Server:** Uses fixed port 8080 for consistency
 
-## Build Commands
+## Commands Summary
 
-| Command | Purpose |
+| Purpose | Command |
 |---------|---------|
-| `npm run electron-dmg` | Build macOS DMG only |
-| `npm run electron-mac` | Build macOS DMG + ZIP |
-| `npm run electron-build` | Build for current platform |
-| `npm run electron-dev` | Development with hot reload |
+| **Electron Dev** | `npm run dev` |
+| **Web Dev** | `npm run dev:web` |
+| **Build DMG** | `npm run build` |
+| **Build Web** | `npm run build:web` |
 
 ## Distributing the App
 
