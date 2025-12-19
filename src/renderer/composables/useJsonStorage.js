@@ -182,17 +182,20 @@ export function useJsonStorage() {
 
   /**
    * Save crawl to app storage (not just localStorage, but registered)
+   * @param {Object} data - The crawl data to save
+   * @param {string} crawlId - Optional: Use existing crawl ID to update same entry (for auto-save). If not provided, generates new ID.
    */
-  function saveCrawlToAppStorage(data) {
+  function saveCrawlToAppStorage(data, crawlId) {
     try {
       const domain = data.crawlState?.baseDomain || 'unknown'
-      const id = `${domain}-${Date.now()}`
+      // Use provided crawl ID (for auto-save updates) or generate new one
+      const id = crawlId || `${domain}-${Date.now()}`
       const fileName = generateFileName(domain)
 
       // Store the actual crawl data
       localStorage.setItem(`crawl-data-${id}`, JSON.stringify(data))
 
-      // Add to registry
+      // Add to registry (will update if id already exists)
       addToRegistry(id, {
         domain,
         fileName,

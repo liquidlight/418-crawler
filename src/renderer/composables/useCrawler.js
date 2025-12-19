@@ -27,6 +27,7 @@ export function useCrawler() {
   const jsonStorage = useJsonStorage()
   let crawlerInstance = null
   let autoSaveInterval = null
+  let currentCrawlId = null
 
   const crawlState = ref({ ...DEFAULT_CRAWL_STATE })
 
@@ -154,6 +155,10 @@ export function useCrawler() {
         onComplete: handleComplete
       })
 
+      // Generate unique crawl ID for this session
+      const baseDomain = crawlerInstance.getSaveableState().baseDomain
+      currentCrawlId = `${baseDomain}-${Date.now()}`
+
       // Save initial state
       await db.saveCrawlState(crawlerInstance.getSaveableState())
 
@@ -215,6 +220,7 @@ export function useCrawler() {
       pages.value = []
       crawlState.value = { ...DEFAULT_CRAWL_STATE }
       crawlerInstance = null
+      currentCrawlId = null
       error.value = null
       isStopping.value = false
     } catch (e) {
@@ -260,8 +266,8 @@ export function useCrawler() {
     autoSaveInterval = setInterval(async () => {
       try {
         const data = await db.exportData()
-        // Save to app's internal storage with registry
-        jsonStorage.saveCrawlToAppStorage(data)
+        // Save to app's internal storage with registry, using the same crawl ID
+        jsonStorage.saveCrawlToAppStorage(data, currentCrawlId)
       } catch (e) {
         console.warn('Auto-save failed:', e)
       }
@@ -511,7 +517,7 @@ export function useCrawler() {
     stopAutoSave()
     try {
       const data = await db.exportData()
-      jsonStorage.saveCrawlToAppStorage(data)
+      jsonStorage.saveCrawlToAppStorage(data, currentCrawlId)
     } catch (e) {
       console.warn('Final auto-save failed:', e)
     }
