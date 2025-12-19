@@ -87,12 +87,11 @@ export async function fetchUrl(url, options = {}) {
  * @returns {object} Response object
  */
 export async function fetchWithRetry(url, options = {}) {
-  // For problematic hosts, reduce retries significantly
-  const isProblematicUrl = url.includes('podvine.com') || url.includes('codepen.com') || url.includes('codebar')
-  const maxRetries = isProblematicUrl ? 0 : (options.retries || 1)
+  const maxRetries = options.retries || 1
   const retryDelay = options.retryDelay || 500
 
   let lastError = null
+  let lastResponse = null
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -101,10 +100,18 @@ export async function fetchWithRetry(url, options = {}) {
         delay: attempt > 0 ? retryDelay : 0
       })
 
+      lastResponse = response
+
       // Don't retry on HTTP error responses (4xx, 5xx), only on network errors
       if (response.status === -1 && attempt < maxRetries) {
         lastError = response.error
-        continue
+        // Check if this is a retryable error
+        if (isRetryableError(response.error)) {
+          continue
+        } else {
+          // Not worth retrying (e.g., TLS, DNS, timeout issues)
+          return response
+        }
       }
 
       return response
@@ -117,12 +124,11 @@ export async function fetchWithRetry(url, options = {}) {
     }
   }
 
-  // All retries exhausted
-  if (isProblematicUrl) {
-    console.debug(`URL not retrying (problematic host): ${url}`)
-  } else {
-    console.warn(`All retries exhausted for ${url}:`, lastError)
+  // All retries exhausted, return last response if available
+  if (lastResponse) {
+    return lastResponse
   }
+
   return {
     ok: false,
     status: -1,
@@ -133,6 +139,26 @@ export async function fetchWithRetry(url, options = {}) {
     responseTime: 0,
     url
   }
+}
+
+/**
+ * Determines if an error is worth retrying
+ * @param {string} errorMessage - The error message from a failed fetch
+ * @returns {boolean} True if the error might be temporary and worth retrying
+ */
+function isRetryableError(errorMessage) {
+  // Don't retry on non-retryable network errors
+  const nonRetryablePatterns = [
+    /ENOTFOUND/i,  // DNS resolution failed
+    /ETIMEDOUT/i,  // Connection timeout
+    /ERR_HTTP_REQUEST_TIMEOUT/i,  // Request timeout
+    /timeout/i,  // Generic timeout
+    /ERR_TLS/i,  // TLS certificate errors
+    /certificate/i,  // Certificate issues
+    /self.signed/i  // Self-signed certificate
+  ]
+
+  return !nonRetryablePatterns.some(pattern => pattern.test(errorMessage))
 }
 
 /**
