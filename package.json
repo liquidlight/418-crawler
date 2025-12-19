@@ -26,15 +26,17 @@
     "productName": "Site Crawler",
     "copyright": "Copyright © 2024 Site Crawler",
     "files": [
-      "dist/**/*",
       "src/electron/**/*",
-      "proxy-server/**/*",
       "node_modules/**/*"
     ],
     "directories": {
       "buildResources": "assets/icons",
       "output": "dist-electron"
     },
+    "extraResources": [
+      "proxy-server/**/*",
+      "dist/**/*"
+    ],
     "win": {
       "target": [
         {

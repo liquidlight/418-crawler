@@ -92,10 +92,15 @@ async function createWindow() {
       console.error('[Electron] Renderer process crashed');
     });
   } else {
-    // Production: load from built files
-    const indexPath = path.join(__dirname, '../../dist/index.html');
-    console.log(`[Electron] Loading production app: ${indexPath}`);
-    mainWindow.loadFile(indexPath);
+    // Production: serve dist folder through HTTP
+    // This avoids file:// protocol issues with Vite-built assets
+    const resourcesPath = process.resourcesPath || path.join(__dirname, '../../');
+    const distPath = path.join(resourcesPath, 'dist');
+
+    startAppServer(distPath).then((url) => {
+      console.log(`[Electron] Loading production app from: ${url}`);
+      mainWindow.loadURL(url);
+    });
 
     mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
       console.error(`[Electron] Failed to load app: ${errorDescription} (${errorCode})`);
@@ -166,15 +171,88 @@ function createMenu() {
   Menu.setApplicationMenu(menu);
 }
 
+// Start a simple HTTP server to serve the dist folder
+// This avoids file:// protocol path resolution issues with Vite
+async function startAppServer(distPath) {
+  const httpModule = require('http');
+  const fsModule = require('fs');
+
+  return new Promise((resolve, reject) => {
+    const server = httpModule.createServer((req, res) => {
+      let filePath = path.join(distPath, req.url === '/' ? 'index.html' : req.url);
+
+      fsModule.readFile(filePath, (err, data) => {
+        if (err) {
+          // Serve index.html for all non-file routes (SPA routing)
+          filePath = path.join(distPath, 'index.html');
+          fsModule.readFile(filePath, (err, data) => {
+            if (err) {
+              res.writeHead(404);
+              res.end('Not Found');
+              return;
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(data);
+          });
+        } else {
+          const ext = path.extname(filePath);
+          const mimeTypes = {
+            '.html': 'text/html',
+            '.js': 'text/javascript',
+            '.css': 'text/css',
+            '.json': 'application/json',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.svg': 'image/svg+xml',
+            '.ico': 'image/x-icon'
+          };
+          const contentType = mimeTypes[ext] || 'application/octet-stream';
+          res.writeHead(200, { 'Content-Type': contentType });
+          res.end(data);
+        }
+      });
+    });
+
+    // Find an available port starting from 9000
+    let port = 9000;
+    const tryPort = () => {
+      server.listen(port, 'localhost', () => {
+        console.log(`[App Server] Running on http://localhost:${port}`);
+        resolve(`http://localhost:${port}`);
+      });
+
+      server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          port++;
+          if (port < 9010) {
+            tryPort();
+          } else {
+            reject(new Error('Could not find available port for app server'));
+          }
+        } else {
+          reject(err);
+        }
+      });
+    };
+
+    tryPort();
+  });
+}
+
 // Start the CORS proxy server
 async function startProxyServer() {
-  const proxyPath = path.join(__dirname, '../../proxy-server/server.js');
+  // extraResources are placed in process.resourcesPath (Resources folder)
+  const resourcesPath = process.resourcesPath || path.join(__dirname, '../../');
+  const proxyPath = path.join(resourcesPath, 'proxy-server/server.js');
 
   // Use fixed port 8080 for consistent proxy setup
   proxyPort = 8080;
 
+  console.log(`Starting proxy server from: ${proxyPath}`);
+
   proxyProcess = spawn('node', [proxyPath], {
-    cwd: path.join(__dirname, '../../'),
+    cwd: resourcesPath,
     stdio: 'pipe',
     detached: false,
     env: { ...process.env, PORT: proxyPort }
