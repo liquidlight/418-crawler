@@ -117,12 +117,10 @@ export function useDatabase() {
    * Creates the page entry if it doesn't exist
    */
   async function addInLink(toUrl, fromUrl, baseDomain = '', rootUrl = '') {
-    if (!db) throw new Error('Database not initialized')
-
     const normalizedTo = normalizeUrl(toUrl) || toUrl
     const normalizedFrom = normalizeUrl(fromUrl) || fromUrl
 
-    let page = await db.get('pages', normalizedTo)
+    let page = await getPage(normalizedTo)
     if (!page) {
       // Determine if this URL is external using actual root URL for consistency
       // Use the actual root URL from crawler state instead of reconstructing it

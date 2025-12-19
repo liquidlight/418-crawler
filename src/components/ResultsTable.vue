@@ -80,6 +80,8 @@
 <script>
 import { ref, computed } from 'vue'
 import { TABLE_CONFIG } from '../utils/constants.js'
+import { getStatusBadgeClass } from '../utils/statusBadges.js'
+import { truncateUrl } from '../utils/textFormatting.js'
 
 export default {
   name: 'ResultsTable',
@@ -116,21 +118,6 @@ export default {
         sortBy.value = column
         sortOrder.value = 'asc'
       }
-    }
-
-    function getStatusBadgeClass(status) {
-      if (status >= 200 && status < 300) return 'badge-success'
-      if (status >= 300 && status < 400) return 'badge-info'
-      if (status >= 400 && status < 500) return 'badge-warning'
-      if (status >= 500) return 'badge-danger'
-      return 'badge-secondary'
-    }
-
-    function truncateUrl(url) {
-      if (url.length > TABLE_CONFIG.URL_DISPLAY_MAX_LENGTH) {
-        return url.substring(0, TABLE_CONFIG.URL_TRUNCATE_THRESHOLD) + '...'
-      }
-      return url
     }
 
     return {
@@ -252,6 +239,7 @@ export default {
   font-size: 0.75rem;
 }
 
+/* Component-specific badge sizing */
 .badge {
   display: inline-block;
   padding: 0.15rem 0.4rem;
@@ -273,30 +261,7 @@ export default {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-.badge-success {
-  background: #e8f5e9;
-  color: #388e3c;
-}
-
-.badge-info {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.badge-warning {
-  background: #fff3e0;
-  color: #f57c00;
-}
-
-.badge-danger {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.badge-secondary {
-  background: #f5f5f5;
-  color: #666;
-}
+/* Badge color variants are imported from shared badges.css */
 
 .number {
   text-align: right;

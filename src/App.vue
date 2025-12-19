@@ -224,6 +224,7 @@
 <script>
 import { ref, onMounted, computed } from 'vue'
 import { useCrawler } from './composables/useCrawler.js'
+import { formatTime } from './utils/timeFormatting.js'
 import CrawlerInput from './components/CrawlerInput.vue'
 import ResultsStats from './components/ResultsStats.vue'
 import ResultsTable from './components/ResultsTable.vue'
@@ -249,8 +250,6 @@ export default {
     const externalFilter = ref(null) // null = all, true = external only, false = internal only
     const activeTab = ref('overview')
 
-    const statusCounts = computed(() => crawler.statusCounts)
-    const fileTypeCounts = computed(() => crawler.fileTypeCounts)
     const savedCrawls = computed(() => crawler.getSavedCrawls())
 
     const statusCodeList = computed(() => {
@@ -333,16 +332,6 @@ export default {
       if (state.stats.pagesCrawled > 0) return 'status-success'
       return 'status-secondary'
     })
-
-    function formatTime(ms) {
-      const seconds = Math.floor(ms / 1000)
-      const minutes = Math.floor(seconds / 60)
-      const remainingSeconds = seconds % 60
-      if (minutes > 0) {
-        return `${minutes}m ${remainingSeconds}s`
-      }
-      return `${remainingSeconds}s`
-    }
 
     onMounted(async () => {
       try {
@@ -487,8 +476,6 @@ export default {
       statusFilter,
       externalFilter,
       activeTab,
-      statusCounts,
-      fileTypeCounts,
       savedCrawls,
       statusCodeList,
       getStatusCount,
@@ -522,6 +509,10 @@ export default {
   }
 }
 </script>
+
+<style>
+@import './assets/badges.css';
+</style>
 
 <style scoped>
 .app {

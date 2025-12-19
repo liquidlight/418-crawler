@@ -109,6 +109,8 @@
 <script>
 import { ref, watch, onMounted } from 'vue'
 import { useDatabase } from '../composables/useDatabase.js'
+import { getStatusBadgeClass } from '../utils/statusBadges.js'
+import { truncateUrl } from '../utils/textFormatting.js'
 
 export default {
   name: 'PageDetailModal',
@@ -139,21 +141,6 @@ export default {
     watch(() => props.page, (newPage) => {
       displayPage.value = newPage
     })
-
-    function getStatusBadgeClass(status) {
-      if (status >= 200 && status < 300) return 'badge-success'
-      if (status >= 300 && status < 400) return 'badge-info'
-      if (status >= 400 && status < 500) return 'badge-warning'
-      if (status >= 500) return 'badge-danger'
-      return 'badge-secondary'
-    }
-
-    function truncateUrl(url) {
-      if (url.length > 70) {
-        return url.substring(0, 67) + '...'
-      }
-      return url
-    }
 
     function navigateToPage(url) {
       emit('navigate', url)
@@ -278,33 +265,9 @@ export default {
   text-decoration: underline;
 }
 
+/* Badge color variants are imported from shared badges.css */
 .badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
   width: fit-content;
-}
-
-.badge-success {
-  background: #e8f5e9;
-  color: #388e3c;
-}
-
-.badge-info {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.badge-warning {
-  background: #fff3e0;
-  color: #f57c00;
-}
-
-.badge-danger {
-  background: #ffebee;
-  color: #c62828;
 }
 
 .metadata-item {

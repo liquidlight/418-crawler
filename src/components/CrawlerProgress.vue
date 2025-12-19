@@ -83,6 +83,8 @@
 
 <script>
 import { computed } from 'vue'
+import { formatTime } from '../utils/timeFormatting.js'
+import { truncateUrl } from '../utils/textFormatting.js'
 
 export default {
   name: 'CrawlerProgress',
@@ -127,25 +129,6 @@ export default {
       return (props.queueUrls || []).slice(0, 3)
     })
 
-    function formatTime(ms) {
-      const seconds = Math.floor(ms / 1000)
-      const minutes = Math.floor(seconds / 60)
-      const remainingSeconds = seconds % 60
-
-      if (minutes > 0) {
-        return `${minutes}m ${remainingSeconds}s`
-      }
-      return `${remainingSeconds}s`
-    }
-
-    function truncateUrl(url) {
-      if (!url) return ''
-      if (url.length > 50) {
-        return url.substring(0, 50) + '...'
-      }
-      return url
-    }
-
     return {
       statusColor,
       statusText,
@@ -184,6 +167,7 @@ export default {
   gap: 0.5rem;
 }
 
+/* Component-specific badge styling */
 .badge {
   display: inline-block;
   padding: 0.5rem 1rem;
@@ -192,30 +176,7 @@ export default {
   font-size: 0.9rem;
 }
 
-.badge-info {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.badge-success {
-  background: #e8f5e9;
-  color: #388e3c;
-}
-
-.badge-warning {
-  background: #fff3e0;
-  color: #f57c00;
-}
-
-.badge-danger {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.badge-secondary {
-  background: #f5f5f5;
-  color: #666;
-}
+/* Badge color variants are imported from shared badges.css */
 
 .stats-grid {
   display: grid;
