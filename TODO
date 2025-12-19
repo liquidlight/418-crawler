@@ -1,0 +1,3 @@
+- group status codes by 100s (e.g. 3xx)
+- pause when internal links have timed out - indicates overloading of the server - resume in incremental spaces - e.g. wait 30 seconds, try again, wait 1 minute, try again, wait 2 minutes, try again stop
+- errors listed on the left but no indication of what they are
