@@ -205,15 +205,21 @@ export class Crawler {
         const location = response.headers?.location
         if (location) {
           const redirectTarget = normalizeUrl(location, url)
-          if (redirectTarget && !this.state.isVisited(redirectTarget)) {
-            // Check if already in queue
-            const alreadyInQueue = this.state.queue.some(item => item.url === redirectTarget)
-            if (!alreadyInQueue) {
-              this.state.addToQueue(redirectTarget, depth + 1)
-              this.state.stats.pagesFound++
-              console.debug(`Queued redirect target: ${url} (${response.status}) -> ${redirectTarget}`)
-              // Don't emit url-discovered event - the redirect target is already in the queue
-              // and will be processed in the next iteration of the crawl loop
+          if (redirectTarget) {
+            // Add redirect target as an outlink on the redirect source
+            if (!page.outLinks.includes(redirectTarget)) {
+              page.outLinks.push(redirectTarget)
+            }
+            if (!this.state.isVisited(redirectTarget)) {
+              // Check if already in queue
+              const alreadyInQueue = this.state.queue.some(item => item.url === redirectTarget)
+              if (!alreadyInQueue) {
+                this.state.addToQueue(redirectTarget, depth + 1)
+                this.state.stats.pagesFound++
+                console.debug(`Queued redirect target: ${url} (${response.status}) -> ${redirectTarget}`)
+                // Don't emit url-discovered event - the redirect target is already in the queue
+                // and will be processed in the next iteration of the crawl loop
+              }
             }
           }
         }
