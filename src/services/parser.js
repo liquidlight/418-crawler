@@ -44,9 +44,10 @@ export function parsePage(url, response, baseDomain, depth = 0) {
     assets: []
   })
 
-  // Only parse HTML content
+  // Only parse HTML content from same-domain pages
+  // External pages: just record status code, don't extract their links
   // We parse even if status is not 200, to capture links from redirect/error pages
-  if (fileType === 'html' && data) {
+  if (!isExternal && fileType === 'html' && data) {
     try {
       parseHtmlContent(page, data, url, baseDomain)
     } catch (error) {

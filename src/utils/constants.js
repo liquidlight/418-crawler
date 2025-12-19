@@ -5,8 +5,7 @@ export const CRAWLER_DEFAULTS = {
   FOLLOW_REDIRECTS: true,
   RESPECT_ROBOTS_TXT: false,
   AUTO_SAVE_INTERVAL: 50,
-  CRAWL_RESOURCES: false,
-  MAX_DEPTH: 3
+  CRAWL_RESOURCES: false
 }
 
 export const FILE_TYPES = {

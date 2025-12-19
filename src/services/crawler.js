@@ -32,7 +32,6 @@ export class Crawler {
     this.requestDelay = options.requestDelay || CRAWLER_DEFAULTS.REQUEST_DELAY
     this.requestTimeout = options.requestTimeout || CRAWLER_DEFAULTS.REQUEST_TIMEOUT
     this.crawlResources = options.crawlResources !== undefined ? options.crawlResources : CRAWLER_DEFAULTS.CRAWL_RESOURCES
-    this.maxDepth = options.maxDepth !== undefined ? options.maxDepth : CRAWLER_DEFAULTS.MAX_DEPTH
 
     // Event handlers
     this.onProgress = options.onProgress || (() => {})
@@ -227,7 +226,7 @@ export class Crawler {
       }
 
       // Extract and queue links based on page type
-      // Internal pages: extract and queue all their outLinks (respecting max depth)
+      // Internal pages: extract and queue all their outLinks (unlimited depth within same domain)
       // External pages: don't extract their links
       const linksToQueue = page.isExternal ? [] : page.outLinks
 
@@ -240,20 +239,17 @@ export class Crawler {
             // Check if already in queue
             const alreadyInQueue = this.state.queue.some(item => item.url === normalizedLink)
             if (!alreadyInQueue) {
-              // Check if we haven't exceeded max depth
-              if (depth + 1 <= this.maxDepth) {
-                // Don't mark as visited yet - will be marked when actually processing
-                this.state.addToQueue(normalizedLink, depth + 1)
-                this.state.stats.pagesFound++
-                discoveredCount++
-                // Emit discovered URL (internal link)
-                this.onPageProcessed({
-                  type: 'url-discovered',
-                  url: normalizedLink,
-                  depth: depth + 1,
-                  isExternal: false
-                })
-              }
+              // Don't mark as visited yet - will be marked when actually processing
+              this.state.addToQueue(normalizedLink, depth + 1)
+              this.state.stats.pagesFound++
+              discoveredCount++
+              // Emit discovered URL (internal link)
+              this.onPageProcessed({
+                type: 'url-discovered',
+                url: normalizedLink,
+                depth: depth + 1,
+                isExternal: false
+              })
             }
           }
         }
@@ -273,10 +269,33 @@ export class Crawler {
       // Update in-links for all discovered URLs (both internal outLinks and externalLinks)
       await this.updateInLinks(url, page.outLinks, page.externalLinks)
 
-      // Don't queue external links - only crawl the same domain
-      // External links are recorded but not crawled to prevent scope creep
+      // Queue external links just to get their status codes - don't parse their content
       if (!page.isExternal && page.externalLinks.length > 0) {
-        console.debug(`Found ${page.externalLinks.length} external links in ${url} (not queued - same domain only)`)
+        let externalQueuedCount = 0
+        for (const externalLink of page.externalLinks) {
+          const normalizedLink = normalizeUrl(externalLink, url)
+          if (normalizedLink && !this.state.isVisited(normalizedLink)) {
+            // Check if already in queue
+            const alreadyInQueue = this.state.queue.some(item => item.url === normalizedLink)
+            if (!alreadyInQueue) {
+              // Queue external links for crawling to get their status codes (but don't parse their links)
+              this.state.addToQueue(normalizedLink, depth + 1)
+              this.state.stats.pagesFound++
+              externalQueuedCount++
+              // Emit discovered external URL event
+              this.onPageProcessed({
+                type: 'url-discovered',
+                url: normalizedLink,
+                depth: depth + 1,
+                isExternal: true
+              })
+            }
+          }
+        }
+        if (externalQueuedCount > 0) {
+          console.debug(`Queued ${externalQueuedCount} external links from ${url} (for status codes only)`)
+          this.emitProgress()
+        }
       }
 
       // Crawl resources if enabled
