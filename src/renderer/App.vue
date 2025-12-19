@@ -632,6 +632,7 @@ export default {
   gap: 1.5rem;
   flex: 1;
   min-height: 0;
+  width: 100%;
 }
 
 .sidebar {
