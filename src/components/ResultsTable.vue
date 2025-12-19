@@ -149,47 +149,47 @@ export default {
 .results-table {
   background: white;
   border-radius: 6px;
-  padding: 1rem;
+  padding: 0.75rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .results-table h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
   color: #333;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
 .no-results {
   text-align: center;
   color: #999;
-  padding: 1.5rem;
-  font-size: 0.9rem;
+  padding: 1rem;
+  font-size: 0.85rem;
 }
 
 .table-wrapper {
   overflow-x: auto;
   border-radius: 4px;
-  border: 1px solid #eee;
+  border: 1px solid #e8e8e8;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .table thead {
-  background: #f9f9f9;
-  border-bottom: 1px solid #ddd;
+  background: #f7f7f7;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .table th {
-  padding: 0.6rem 0.75rem;
+  padding: 0.4rem 0.5rem;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  font-size: 0.8rem;
+  color: #444;
+  font-size: 0.75rem;
   user-select: none;
 }
 
@@ -199,45 +199,45 @@ export default {
 }
 
 .table th.sortable:hover {
-  background: #f0f0f0;
+  background: #efefef;
 }
 
 .sort-indicator {
-  margin-left: 0.15rem;
-  font-size: 0.7rem;
+  margin-left: 0.1rem;
+  font-size: 0.6rem;
 }
 
 .table td {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 0.85rem;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 0.8rem;
 }
 
 .table-row:hover {
-  background: #fafafa;
+  background: #fcfcfc;
 }
 
 .status-cell {
-  width: 60px;
+  width: 55px;
 }
 
 .type-cell {
-  width: 75px;
+  width: 65px;
 }
 
 .url-cell {
-  max-width: 280px;
+  max-width: 260px;
 }
 
 .url-col {
-  width: 280px;
+  width: 260px;
 }
 
 .url-link {
   color: #667eea;
   text-decoration: none;
   word-break: break-all;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .url-link:hover {
@@ -245,18 +245,18 @@ export default {
 }
 
 .truncate {
-  max-width: 180px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .badge {
   display: inline-block;
-  padding: 0.2rem 0.5rem;
-  border-radius: 10px;
-  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
@@ -301,11 +301,11 @@ export default {
 .number {
   text-align: right;
   font-family: monospace;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .actions-col {
-  width: 80px;
+  width: 70px;
   text-align: center;
 }
 
@@ -314,12 +314,12 @@ export default {
 }
 
 .btn-small {
-  padding: 0.3rem 0.6rem;
+  padding: 0.2rem 0.5rem;
   background: #667eea;
   color: white;
   border: none;
-  border-radius: 3px;
-  font-size: 0.75rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -331,7 +331,7 @@ export default {
 
 .row-pending {
   opacity: 0.6;
-  background: #f9f9f9;
+  background: #fafafa;
 }
 
 .badge-pending {
@@ -351,6 +351,6 @@ export default {
 
 .text-muted {
   color: #999;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 </style>
