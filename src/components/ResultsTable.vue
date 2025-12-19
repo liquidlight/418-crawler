@@ -38,12 +38,13 @@
             v-for="page in sortedPages"
             :key="page.url"
             class="table-row"
-            :class="{ 'row-pending': !page.isCrawled }"
+            :class="{ 'row-pending': !page.isCrawled && !page.isExternal }"
           >
             <td class="status-cell">
               <button v-if="page.isCrawled" :class="getStatusBadgeClass(page.statusCode)" class="badge badge-clickable" @click="$emit('filter-status', page.statusCode)" :title="'Filter by status ' + page.statusCode">
                 {{ page.statusCode }}
               </button>
+              <span v-else-if="page.isExternal" class="badge badge-external">external</span>
               <span v-else class="badge badge-pending">pending</span>
             </td>
             <td class="url-cell">
@@ -327,6 +328,11 @@ export default {
 .badge-pending {
   background: #e0e0e0;
   color: #999;
+}
+
+.badge-external {
+  background: #e8f4f8;
+  color: #0277bd;
 }
 
 .text-muted {
