@@ -31,6 +31,7 @@ export class Crawler {
     this.maxConcurrent = options.maxConcurrent || CRAWLER_DEFAULTS.MAX_CONCURRENT
     this.requestDelay = options.requestDelay || CRAWLER_DEFAULTS.REQUEST_DELAY
     this.requestTimeout = options.requestTimeout || CRAWLER_DEFAULTS.REQUEST_TIMEOUT
+    this.crawlResources = options.crawlResources !== undefined ? options.crawlResources : CRAWLER_DEFAULTS.CRAWL_RESOURCES
 
     // Event handlers
     this.onProgress = options.onProgress || (() => {})
@@ -275,6 +276,33 @@ export class Crawler {
               isExternal: true
             })
           }
+        }
+      }
+
+      // Crawl resources if enabled
+      if (this.crawlResources && page.assets && page.assets.length > 0) {
+        let resourceQueuedCount = 0
+        for (const assetUrl of page.assets) {
+          if (!this.state.isVisited(assetUrl)) {
+            const alreadyInQueue = this.state.queue.some(item => item.url === assetUrl)
+            if (!alreadyInQueue) {
+              this.state.addToQueue(assetUrl, depth + 1)
+              this.state.stats.pagesFound++
+              resourceQueuedCount++
+              // Emit discovered resource event
+              this.onPageProcessed({
+                type: 'url-discovered',
+                url: assetUrl,
+                depth: depth + 1,
+                isExternal: false,
+                isResource: true
+              })
+            }
+          }
+        }
+        if (resourceQueuedCount > 0) {
+          console.debug(`Queued ${resourceQueuedCount} resources from ${url}`)
+          this.emitProgress()
         }
       }
     } catch (error) {

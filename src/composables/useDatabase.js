@@ -198,7 +198,9 @@ export function useDatabase() {
    * Get pages by status code range or specific code
    */
   async function getPagesByStatus(statusCode) {
-    return await getPagesByIndex('statusCode', statusCode)
+    if (!db) throw new Error('Database not initialized')
+    const allPages = await getAllPages()
+    return allPages.filter(p => p.statusCode === statusCode)
   }
 
   /**
@@ -212,7 +214,9 @@ export function useDatabase() {
    * Get uncrawled pages
    */
   async function getUncrawledPages() {
-    return await getPagesByIndex('isCrawled', false)
+    if (!db) throw new Error('Database not initialized')
+    const allPages = await getAllPages()
+    return allPages.filter(p => p.isCrawled === false)
   }
 
   return {
