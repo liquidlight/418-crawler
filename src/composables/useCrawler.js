@@ -331,7 +331,9 @@ export function useCrawler() {
       inLinks: [],
       externalLinks: [],
       assets: [],
-      isCrawled: false,  // Mark as not yet crawled
+      // External links are not crawled, so mark them as crawled (won't attempt to fetch)
+      // Internal links are marked as not crawled until they're actually fetched
+      isCrawled: isExternal,
       isExternal: isExternal,  // Use the passed isExternal value
       depth,
       crawledAt: null
