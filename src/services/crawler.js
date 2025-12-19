@@ -75,14 +75,19 @@ export class Crawler {
 
           if (orphanedUrls && orphanedUrls.length > 0) {
             console.log(`Found ${orphanedUrls.length} orphaned internal URLs. Queuing them now...`)
+            let queuedCount = 0
             orphanedUrls.forEach(url => {
-              if (!this.state.isVisited(url)) {
+              if (!this.state.isVisited(url) && !this.state.queue.some(item => item.url === url)) {
                 this.state.addToQueue(url, 0)
                 console.debug(`Queued orphaned URL: ${url}`)
+                queuedCount++
               }
             })
-            this.emitProgress()
-            continue // Continue crawling newly queued URLs
+            if (queuedCount > 0) {
+              this.emitProgress()
+              continue // Continue crawling newly queued URLs
+            }
+            // If no new URLs were queued, break the loop to avoid infinite loop
           }
 
           // No orphaned URLs found, check consistency
