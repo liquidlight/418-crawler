@@ -64,8 +64,8 @@ export default {
     })
 
     const pendingCount = computed(() => {
-      // Count only internal pages with null status (not external links)
-      return props.pages.filter(p => p.statusCode === null && !p.isExternal).length
+      // Count all pages that haven't been crawled yet
+      return props.pages.filter(p => !p.isCrawled).length
     })
 
     // Get sorted list of status codes (exclude null/pending)

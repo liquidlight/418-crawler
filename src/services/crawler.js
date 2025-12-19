@@ -221,7 +221,7 @@ export class Crawler {
 
       // Extract and queue links based on page type
       // Internal pages: extract and queue all their outLinks
-      // External pages: don't extract or queue their links
+      // External pages: don't extract their links (but should be crawled for status codes)
       const linksToQueue = page.isExternal ? [] : page.outLinks
 
       if (linksToQueue.length > 0) {
