@@ -56,7 +56,7 @@ app.post('/fetch', async (req, res) => {
     const fetchOptions = {
       method: options.method || 'GET',
       timeout: options.timeout || 30000,
-      redirect: 'follow',
+      redirect: 'manual',  // Don't follow redirects - let the crawler handle them
       headers: {
         'User-Agent': 'SiteCrawler/1.0 (https://github.com/anthropics/site-crawler)',
         ...options.headers

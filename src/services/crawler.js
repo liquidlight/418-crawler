@@ -194,6 +194,30 @@ export class Crawler {
         this.state.stats.errors++
       }
 
+      // Handle redirects: if this is a 3xx response, extract and queue the Location header
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers?.location || response.headers?.Location
+        if (location) {
+          const redirectTarget = normalizeUrl(location, url)
+          if (redirectTarget && !this.state.isVisited(redirectTarget)) {
+            // Check if already in queue
+            const alreadyInQueue = this.state.queue.some(item => item.url === redirectTarget)
+            if (!alreadyInQueue) {
+              this.state.addToQueue(redirectTarget, depth + 1)
+              this.state.stats.pagesFound++
+              // Emit discovered URL event for the redirect target
+              this.onPageProcessed({
+                type: 'url-discovered',
+                url: redirectTarget,
+                depth: depth + 1,
+                isExternal: !isSameDomain(redirectTarget, url, this.baseDomain)
+              })
+              console.debug(`Queued redirect target: ${url} (${response.status}) -> ${redirectTarget}`)
+            }
+          }
+        }
+      }
+
       // Extract and queue links based on page type
       // Internal pages: extract and queue all their outLinks
       // External pages: don't extract or queue their links
