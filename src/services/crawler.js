@@ -263,19 +263,32 @@ export class Crawler {
       // Update in-links for all discovered URLs (both internal outLinks and externalLinks)
       await this.updateInLinks(url, page.outLinks, page.externalLinks)
 
-      // Emit discovered URLs for external links (they won't be queued but should be in the system)
+      // Queue and emit discovered external links to get their status codes
       if (!page.isExternal && page.externalLinks.length > 0) {
+        let externalQueuedCount = 0
         for (const externalLink of page.externalLinks) {
           const normalizedLink = normalizeUrl(externalLink, url)
           if (normalizedLink && !this.state.isVisited(normalizedLink)) {
-            // Emit discovered external URL event
-            this.onPageProcessed({
-              type: 'url-discovered',
-              url: normalizedLink,
-              depth: depth + 1,
-              isExternal: true
-            })
+            // Check if already in queue
+            const alreadyInQueue = this.state.queue.some(item => item.url === normalizedLink)
+            if (!alreadyInQueue) {
+              // Queue external links for crawling to get their status codes
+              this.state.addToQueue(normalizedLink, depth + 1)
+              this.state.stats.pagesFound++
+              externalQueuedCount++
+              // Emit discovered external URL event
+              this.onPageProcessed({
+                type: 'url-discovered',
+                url: normalizedLink,
+                depth: depth + 1,
+                isExternal: true
+              })
+            }
           }
+        }
+        if (externalQueuedCount > 0) {
+          console.debug(`Queued ${externalQueuedCount} external links from ${url}`)
+          this.emitProgress()
         }
       }
 
