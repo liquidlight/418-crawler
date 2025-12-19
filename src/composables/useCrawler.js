@@ -1,6 +1,7 @@
 import { ref, computed, watch, markRaw, shallowRef } from 'vue'
 import { Crawler } from '../services/crawler.js'
 import { useDatabase } from './useDatabase.js'
+import { useJsonStorage } from './useJsonStorage.js'
 import { normalizeUrl } from '../utils/url.js'
 
 const DEFAULT_CRAWL_STATE = {
@@ -23,7 +24,9 @@ const DEFAULT_CRAWL_STATE = {
 
 export function useCrawler() {
   const db = useDatabase()
+  const jsonStorage = useJsonStorage()
   let crawlerInstance = null
+  let autoSaveInterval = null
 
   const crawlState = ref({ ...DEFAULT_CRAWL_STATE })
 
@@ -154,6 +157,9 @@ export function useCrawler() {
       // Save initial state
       await db.saveCrawlState(crawlerInstance.getSaveableState())
 
+      // Start auto-save (every 30 seconds)
+      startAutoSave(30000)
+
       // Start crawling
       isStopping.value = false
       crawlerInstance.start()
@@ -204,6 +210,7 @@ export function useCrawler() {
    */
   async function resetCrawl() {
     try {
+      stopAutoSave()
       await db.clearAll()
       pages.value = []
       crawlState.value = { ...DEFAULT_CRAWL_STATE }
@@ -238,6 +245,81 @@ export function useCrawler() {
     } catch (e) {
       error.value = e.message
       console.error('Failed to export results:', e)
+    }
+  }
+
+  /**
+   * Auto-save crawl progress to JSON every 30 seconds
+   */
+  function startAutoSave(interval = 30000) {
+    // Clear any existing interval
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval)
+    }
+
+    autoSaveInterval = setInterval(async () => {
+      try {
+        const data = await db.exportData()
+        jsonStorage.autoSaveToStorage(data)
+      } catch (e) {
+        console.warn('Auto-save failed:', e)
+      }
+    }, interval)
+  }
+
+  /**
+   * Stop auto-saving
+   */
+  function stopAutoSave() {
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval)
+      autoSaveInterval = null
+    }
+  }
+
+  /**
+   * Load crawl from saved JSON file (for resume functionality)
+   */
+  async function loadFromFile(file) {
+    try {
+      const data = await jsonStorage.loadFromFile(file)
+
+      // Clear current crawl
+      await db.clearAll()
+
+      // Restore pages and state
+      if (data.pages && Array.isArray(data.pages)) {
+        for (const page of data.pages) {
+          await db.savePage(page)
+        }
+      }
+
+      if (data.crawlState) {
+        await db.saveCrawlState(data.crawlState)
+        updateCrawlState(data.crawlState)
+      }
+
+      await loadPages()
+      return { success: true }
+    } catch (e) {
+      error.value = e.message
+      console.error('Failed to load from file:', e)
+      return { success: false, error: e.message }
+    }
+  }
+
+  /**
+   * Save current crawl to downloadable JSON file
+   */
+  async function saveToFile(fileName = null) {
+    try {
+      const data = await db.exportData()
+      const result = jsonStorage.saveToFile(data, fileName)
+      return result
+    } catch (e) {
+      error.value = e.message
+      console.error('Failed to save to file:', e)
+      return { success: false, error: e.message }
     }
   }
 
@@ -375,6 +457,15 @@ export function useCrawler() {
     isStopping.value = false
     updateCrawlState(state)
     await db.saveCrawlState(crawlerInstance.getSaveableState())
+
+    // Stop auto-save and do final save
+    stopAutoSave()
+    try {
+      const data = await db.exportData()
+      jsonStorage.autoSaveToStorage(data)
+    } catch (e) {
+      console.warn('Final auto-save failed:', e)
+    }
   }
 
   /**
@@ -429,6 +520,10 @@ export function useCrawler() {
     resetCrawl,
     loadPages,
     exportResults,
+    loadFromFile,
+    saveToFile,
+    startAutoSave,
+    stopAutoSave,
     getPageByUrl,
     getPagesByStatus,
     getPagesByFileType

@@ -7,6 +7,7 @@
       </div>
       <div class="header-right">
         <span v-if="crawlState.rootUrl" class="status-text">{{ statusLabel }}</span>
+        <button @click="triggerFileInput" class="btn btn-secondary">Import</button>
         <button v-if="crawlState.rootUrl" @click="handleExport" class="btn btn-primary">Export</button>
         <button v-if="crawlState.rootUrl" @click="handleResetCrawl" class="btn btn-secondary">Reset</button>
       </div>
@@ -383,18 +384,41 @@ export default {
 
     async function handleExport() {
       try {
-        const data = await crawler.exportResults()
-        const json = JSON.stringify(data, null, 2)
-        const blob = new Blob([json], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `crawl-${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
+        const result = await crawler.saveToFile()
+        if (result.success) {
+          error.value = null
+        } else {
+          error.value = 'Export failed: ' + result.error
+        }
       } catch (e) {
         error.value = 'Export failed: ' + e.message
       }
+    }
+
+    async function handleImport(file) {
+      try {
+        const result = await crawler.loadFromFile(file)
+        if (result.success) {
+          error.value = null
+        } else {
+          error.value = 'Import failed: ' + result.error
+        }
+      } catch (e) {
+        error.value = 'Import failed: ' + e.message
+      }
+    }
+
+    function triggerFileInput() {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.json'
+      input.onchange = (e) => {
+        const file = e.target.files[0]
+        if (file) {
+          handleImport(file)
+        }
+      }
+      input.click()
     }
 
     function handleNavigateToPage(url) {
@@ -439,6 +463,8 @@ export default {
       handleStopCrawl,
       handleResetCrawl,
       handleExport,
+      handleImport,
+      triggerFileInput,
       handleNavigateToPage,
       clearError
     }
