@@ -196,7 +196,7 @@ export class Crawler {
 
       // Handle redirects: if this is a 3xx response, extract and queue the Location header
       if (response.status >= 300 && response.status < 400) {
-        const location = response.headers?.location || response.headers?.Location
+        const location = response.headers?.location
         if (location) {
           const redirectTarget = normalizeUrl(location, url)
           if (redirectTarget && !this.state.isVisited(redirectTarget)) {
@@ -205,12 +205,14 @@ export class Crawler {
             if (!alreadyInQueue) {
               this.state.addToQueue(redirectTarget, depth + 1)
               this.state.stats.pagesFound++
+              // Determine if redirect target is external
+              const isRedirectExternal = !isSameDomain(redirectTarget, this.rootUrl, this.baseDomain)
               // Emit discovered URL event for the redirect target
               this.onPageProcessed({
                 type: 'url-discovered',
                 url: redirectTarget,
                 depth: depth + 1,
-                isExternal: !isSameDomain(redirectTarget, url, this.baseDomain)
+                isExternal: isRedirectExternal
               })
               console.debug(`Queued redirect target: ${url} (${response.status}) -> ${redirectTarget}`)
             }

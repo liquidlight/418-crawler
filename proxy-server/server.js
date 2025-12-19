@@ -79,7 +79,8 @@ app.post('/fetch', async (req, res) => {
         'connection',
         'keep-alive'
       ].includes(name.toLowerCase())) {
-        headers[name] = value
+        // Lowercase header names for consistency
+        headers[name.toLowerCase()] = value
       }
     })
 
