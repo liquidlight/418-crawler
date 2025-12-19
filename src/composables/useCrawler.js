@@ -265,7 +265,7 @@ export function useCrawler() {
 
     // Check if this is a URL discovery event
     if (page.type === 'url-discovered') {
-      addDiscoveredUrl(page.url, page.depth, page.isExternal)
+      await addDiscoveredUrl(page.url, page.depth, page.isExternal)
     }
     // Check if this is an in-link update
     else if (page.type === 'inlink-update') {
@@ -307,9 +307,9 @@ export function useCrawler() {
   }
 
   /**
-   * Add a discovered URL (pending crawl) to the pages list
+   * Add a discovered URL (pending crawl) to the pages list and database
    */
-  function addDiscoveredUrl(url, depth = 0, isExternal = false) {
+  async function addDiscoveredUrl(url, depth = 0, isExternal = false) {
     // Check if URL already exists in pages
     const exists = pages.value.find(p => p.url === url)
     if (exists) return
@@ -336,6 +336,9 @@ export function useCrawler() {
       depth,
       crawledAt: null
     }
+
+    // Save to database so orphaned URL detection can find it
+    await db.savePage(pendingPage)
 
     pages.value = [...pages.value, markRaw(pendingPage)]
   }
