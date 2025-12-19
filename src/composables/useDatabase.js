@@ -1,92 +1,115 @@
 import { ref } from 'vue'
-import { openDB } from 'idb'
-import { SCHEMA, initializeSchema } from '../db/schema.js'
-import { CrawlState } from '../models/CrawlState.js'
 import { isSameDomain, normalizeUrl } from '../utils/url.js'
 
-let db = null
-
 /**
- * Composable for managing IndexedDB operations
+ * Composable for managing crawl data using localStorage as a buffer
+ * Pages are stored in localStorage during crawl, then flushed to JSON registry
  */
 export function useDatabase() {
   const isInitialized = ref(false)
   const error = ref(null)
+  const PAGES_KEY = 'crawl-pages-buffer'
+  const STATE_KEY = 'crawl-state-buffer'
 
   /**
-   * Initialize the IndexedDB database
+   * Initialize the buffer (localStorage)
    */
   async function init() {
     try {
-      db = await openDB(SCHEMA.name, SCHEMA.version, {
-        upgrade(db, oldVersion, newVersion, transaction) {
-          initializeSchema(db, oldVersion, newVersion, transaction)
-        }
-      })
       isInitialized.value = true
       error.value = null
     } catch (e) {
       error.value = e.message
-      console.error('Failed to initialize database:', e)
+      console.error('Failed to initialize storage:', e)
       throw e
     }
   }
 
   /**
-   * Save a page to the database
+   * Save a page to the localStorage buffer
    */
   async function savePage(page) {
-    if (!db) throw new Error('Database not initialized')
-    const pageData = page.toJSON ? page.toJSON() : page
-    // Ensure normalizedUrl is present (for index)
-    if (!pageData.normalizedUrl) {
-      pageData.normalizedUrl = normalizeUrl(pageData.url) || pageData.url
+    try {
+      const pageData = page.toJSON ? page.toJSON() : page
+      // Ensure normalizedUrl is present
+      if (!pageData.normalizedUrl) {
+        pageData.normalizedUrl = normalizeUrl(pageData.url) || pageData.url
+      }
+
+      // Get existing pages from buffer
+      let pages = getPageBuffer()
+
+      // Update or add page
+      const index = pages.findIndex(p => p.normalizedUrl === pageData.normalizedUrl)
+      if (index >= 0) {
+        pages[index] = pageData
+      } else {
+        pages.push(pageData)
+      }
+
+      // Save back to buffer
+      localStorage.setItem(PAGES_KEY, JSON.stringify(pages))
+      return pageData.normalizedUrl
+    } catch (e) {
+      console.error('Error saving page:', e)
+      throw e
     }
-    return await db.put('pages', pageData)
   }
 
   /**
-   * Get a page by URL
+   * Get a page from the buffer by URL
    */
   async function getPage(url) {
-    if (!db) throw new Error('Database not initialized')
     const normalized = normalizeUrl(url) || url
-    return await db.get('pages', normalized)
+    const pages = getPageBuffer()
+    return pages.find(p => p.normalizedUrl === normalized) || null
   }
 
   /**
-   * Get all pages
+   * Get all pages from the buffer
    */
   async function getAllPages() {
-    if (!db) throw new Error('Database not initialized')
-    return await db.getAll('pages')
+    return getPageBuffer()
   }
 
   /**
-   * Get pages by index (e.g., by status code)
+   * Internal: Get pages buffer from localStorage
+   */
+  function getPageBuffer() {
+    try {
+      const data = localStorage.getItem(PAGES_KEY)
+      return data ? JSON.parse(data) : []
+    } catch (e) {
+      console.warn('Error reading page buffer:', e)
+      return []
+    }
+  }
+
+  /**
+   * Get pages by index (filter by property)
    */
   async function getPagesByIndex(indexName, value) {
-    if (!db) throw new Error('Database not initialized')
-    const tx = db.transaction('pages', 'readonly')
-    const index = tx.objectStore('pages').index(indexName)
-    return await index.getAll(value)
+    const pages = getPageBuffer()
+    return pages.filter(p => p[indexName] === value)
   }
 
   /**
-   * Delete a page
+   * Delete a page from the buffer
    */
   async function deletePage(url) {
-    if (!db) throw new Error('Database not initialized')
     const normalized = normalizeUrl(url) || url
-    return await db.delete('pages', normalized)
+    let pages = getPageBuffer()
+    pages = pages.filter(p => p.normalizedUrl !== normalized)
+    localStorage.setItem(PAGES_KEY, JSON.stringify(pages))
+    return true
   }
 
   /**
-   * Clear all pages
+   * Clear all pages from the buffer
    */
   async function clearPages() {
-    if (!db) throw new Error('Database not initialized')
-    return await db.clear('pages')
+    localStorage.removeItem(PAGES_KEY)
+    return true
   }
 
   /**
@@ -131,71 +154,78 @@ export function useDatabase() {
   }
 
   /**
-   * Save crawler state
+   * Save crawler state to buffer
    */
   async function saveCrawlState(state) {
-    if (!db) throw new Error('Database not initialized')
-    const stateData = state.toJSON ? state.toJSON() : state
-    return await db.put('crawlState', { id: 'current', ...stateData })
+    try {
+      const stateData = state.toJSON ? state.toJSON() : state
+      localStorage.setItem(STATE_KEY, JSON.stringify(stateData))
+      return true
+    } catch (e) {
+      console.error('Error saving crawl state:', e)
+      throw e
+    }
   }
 
   /**
-   * Get crawler state
+   * Get crawler state from buffer
    */
   async function getCrawlState() {
-    if (!db) throw new Error('Database not initialized')
-    const state = await db.get('crawlState', 'current')
-    // Return plain data object, not CrawlState instance to avoid circular refs in Vue reactivity
-    if (state) {
-      return {
-        id: state.id,
-        rootUrl: state.rootUrl,
-        baseDomain: state.baseDomain,
-        isActive: state.isActive,
-        isPaused: state.isPaused,
-        queueSize: state.queueSize,
-        visitedCount: state.visitedCount,
-        inProgressCount: state.inProgressCount,
-        totalTime: state.totalTime,
-        stats: state.stats
+    try {
+      const data = localStorage.getItem(STATE_KEY)
+      if (data) {
+        const state = JSON.parse(data)
+        return {
+          id: state.id,
+          rootUrl: state.rootUrl,
+          baseDomain: state.baseDomain,
+          isActive: state.isActive,
+          isPaused: state.isPaused,
+          queueSize: state.queueSize,
+          visitedCount: state.visitedCount,
+          inProgressCount: state.inProgressCount,
+          totalTime: state.totalTime,
+          stats: state.stats
+        }
       }
+      return null
+    } catch (e) {
+      console.warn('Error reading crawl state:', e)
+      return null
     }
-    return null
   }
 
   /**
    * Delete crawler state (reset crawl)
    */
   async function deleteCrawlState() {
-    if (!db) throw new Error('Database not initialized')
-    return await db.delete('crawlState', 'current')
+    localStorage.removeItem(STATE_KEY)
+    return true
   }
 
   /**
    * Get all pages count
    */
   async function getPagesCount() {
-    if (!db) throw new Error('Database not initialized')
-    return await db.count('pages')
+    const pages = getPageBuffer()
+    return pages.length
   }
 
   /**
-   * Clear entire database
+   * Clear entire buffer (all pages and state)
    */
   async function clearAll() {
-    if (!db) throw new Error('Database not initialized')
-    await db.clear('pages')
-    await db.clear('crawlState')
-    await db.clear('settings')
+    localStorage.removeItem(PAGES_KEY)
+    localStorage.removeItem(STATE_KEY)
+    return true
   }
 
   /**
    * Export all data as JSON
    */
   async function exportData() {
-    if (!db) throw new Error('Database not initialized')
     const pages = await getAllPages()
-    const state = await db.get('crawlState', 'current')
+    const state = await getCrawlState()
     return {
       pages,
       crawlState: state,
@@ -204,10 +234,9 @@ export function useDatabase() {
   }
 
   /**
-   * Get pages by status code range or specific code
+   * Get pages by status code
    */
   async function getPagesByStatus(statusCode) {
-    if (!db) throw new Error('Database not initialized')
     const allPages = await getAllPages()
     return allPages.filter(p => p.statusCode === statusCode)
   }
@@ -223,9 +252,27 @@ export function useDatabase() {
    * Get uncrawled pages
    */
   async function getUncrawledPages() {
-    if (!db) throw new Error('Database not initialized')
     const allPages = await getAllPages()
     return allPages.filter(p => p.isCrawled === false)
+  }
+
+  /**
+   * Flush buffer to registry (called periodically during crawl)
+   */
+  async function flushToRegistry(registrySaveFunction) {
+    try {
+      const data = await exportData()
+      const result = registrySaveFunction(data)
+      if (result.success) {
+        // Clear the buffer after successful flush
+        localStorage.removeItem(PAGES_KEY)
+        localStorage.removeItem(STATE_KEY)
+      }
+      return result
+    } catch (e) {
+      console.error('Error flushing to registry:', e)
+      throw e
+    }
   }
 
   return {
@@ -245,6 +292,7 @@ export function useDatabase() {
     getPagesCount,
     clearAll,
     exportData,
+    flushToRegistry,
     getPagesByStatus,
     getPagesByFileType,
     getUncrawledPages
