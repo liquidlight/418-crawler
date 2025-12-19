@@ -1,11 +1,27 @@
 /**
  * Filters a list of pages by status code
+ * Supports both individual codes (301) and grouped codes (3XX)
  */
 export function filterByStatusCode(pages, statusCodes) {
   if (!statusCodes || statusCodes.length === 0) {
     return pages
   }
-  return pages.filter(page => statusCodes.includes(page.statusCode))
+
+  return pages.filter(page => {
+    const pageStatus = page.statusCode
+    if (!pageStatus) return false
+
+    return statusCodes.some(code => {
+      // If code is grouped (e.g., "3XX"), check if page status falls in that range
+      if (code.endsWith('XX')) {
+        const hundreds = parseInt(code)
+        const pageHundreds = Math.floor(pageStatus / 100)
+        return hundreds === pageHundreds
+      }
+      // If code is specific (e.g., 301), match exactly
+      return code === pageStatus
+    })
+  })
 }
 
 /**

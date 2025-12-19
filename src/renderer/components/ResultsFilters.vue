@@ -8,17 +8,17 @@
         <label class="filter-label">Status Codes</label>
         <div class="filter-options">
           <label
-            v-for="code in availableStatusCodes"
-            :key="code"
+            v-for="group in groupedStatusCodes"
+            :key="group.group"
             class="checkbox-label"
           >
             <input
               type="checkbox"
-              :checked="selectedStatusCodes.includes(code)"
-              @change="$emit('toggle-status', code)"
+              :checked="selectedStatusCodes.includes(group.group)"
+              @change="$emit('toggle-status', group.group)"
               class="checkbox"
             />
-            <span class="label-text">{{ code }} ({{ getStatusCodeCount(code) }})</span>
+            <span class="label-text">{{ group.group }} ({{ group.count }})</span>
           </label>
         </div>
       </div>
@@ -68,6 +68,7 @@
 
 <script>
 import { computed } from 'vue'
+import { groupStatusCodesByHundreds } from '../utils/statusBadges.js'
 
 export default {
   name: 'ResultsFilters',
@@ -87,15 +88,16 @@ export default {
       )
     })
 
-    // Compute unique status codes from pages
-    const availableStatusCodes = computed(() => {
-      const codes = new Set()
-      props.pages.forEach(page => {
-        if (page.statusCode) {
-          codes.add(page.statusCode)
-        }
-      })
-      return Array.from(codes).sort((a, b) => a - b)
+    // Get all status codes from pages and group them
+    const allStatusCodes = computed(() => {
+      return props.pages
+        .map(page => page.statusCode)
+        .filter(code => code !== null && code !== undefined)
+    })
+
+    // Compute grouped status codes from pages
+    const groupedStatusCodes = computed(() => {
+      return groupStatusCodesByHundreds(allStatusCodes.value)
     })
 
     // Compute unique file types from pages
@@ -109,17 +111,6 @@ export default {
       return Array.from(types).sort()
     })
 
-    // Compute status counts directly from pages
-    const computedStatusCount = computed(() => {
-      const counts = {}
-      props.pages.forEach(page => {
-        if (page.statusCode) {
-          counts[page.statusCode] = (counts[page.statusCode] || 0) + 1
-        }
-      })
-      return counts
-    })
-
     // Compute file type counts directly from pages
     const computedFileTypeCount = computed(() => {
       const counts = {}
@@ -130,17 +121,6 @@ export default {
       })
       return counts
     })
-
-    // Methods to get counts for a specific code/type
-    function getStatusCodeCount(code) {
-      const counts = {}
-      props.pages.forEach(page => {
-        if (page.statusCode) {
-          counts[page.statusCode] = (counts[page.statusCode] || 0) + 1
-        }
-      })
-      return counts[code] || 0
-    }
 
     function getFileTypeCount(type) {
       const counts = {}
@@ -154,9 +134,8 @@ export default {
 
     return {
       hasActiveFilters,
-      availableStatusCodes,
+      groupedStatusCodes,
       availableFileTypes,
-      getStatusCodeCount,
       getFileTypeCount
     }
   }

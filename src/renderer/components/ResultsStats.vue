@@ -10,10 +10,10 @@
 
       <div class="stat-card">
         <h3>Status Codes</h3>
-        <div class="status-breakdown" v-if="sortedStatuses && sortedStatuses.length > 0">
+        <div class="status-breakdown" v-if="statusItems && statusItems.length > 0">
           <div v-for="item in statusItems" :key="`status-${item.code}`" class="breakdown-item">
             <span class="label">{{ item.code }}:</span>
-            <span class="badge" :class="getBadgeClass(item.code)">{{ item.count }}</span>
+            <span class="badge" :class="getBadgeClass(parseInt(item.code))">{{ item.count }}</span>
           </div>
           <div v-if="pendingCount > 0" class="breakdown-item">
             <span class="label">Pending:</span>
@@ -42,7 +42,7 @@
 
 <script>
 import { computed, toRaw } from 'vue'
-import { getStatusBadgeClass } from '../utils/statusBadges.js'
+import { getStatusBadgeClass, groupStatusCodesByHundreds } from '../utils/statusBadges.js'
 
 export default {
   name: 'ResultsStats',
@@ -54,14 +54,11 @@ export default {
       return props.pages.reduce((sum, page) => sum + (page.externalLinks?.length || 0), 0)
     })
 
-    // Compute status counts directly from pages
-    const computedStatusCounts = computed(() => {
-      const counts = {}
-      props.pages.forEach(page => {
-        const code = page.statusCode
-        counts[code] = (counts[code] || 0) + 1
-      })
-      return counts
+    // Get all status codes from pages
+    const allStatusCodes = computed(() => {
+      return props.pages
+        .map(page => page.statusCode)
+        .filter(code => code !== null && code !== undefined)
     })
 
     const pendingCount = computed(() => {
@@ -69,26 +66,16 @@ export default {
       return props.pages.filter(p => !p.isCrawled).length
     })
 
-    // Get sorted list of status codes (exclude null/pending)
-    const sortedStatuses = computed(() => {
-      const codes = []
-      Object.keys(computedStatusCounts.value).forEach(code => {
-        if (code !== 'null' && code !== 'undefined') {
-          const num = parseInt(code)
-          if (!isNaN(num)) {
-            codes.push(num)
-          }
-        }
-      })
-      return codes.sort((a, b) => a - b)
+    // Get grouped status codes
+    const groupedStatuses = computed(() => {
+      return groupStatusCodesByHundreds(allStatusCodes.value)
     })
 
     // Create plain array of status items for rendering (avoid reactive issues)
     const statusItems = computed(() => {
-      const counts = toRaw(computedStatusCounts.value)
-      return sortedStatuses.value.map(code => ({
-        code: code,
-        count: counts[code] || 0
+      return toRaw(groupedStatuses.value).map(item => ({
+        code: item.group,
+        count: item.count
       }))
     })
 
@@ -118,7 +105,6 @@ export default {
     return {
       externalLinkCount,
       pendingCount,
-      sortedStatuses,
       statusItems,
       sortedTypes,
       getBadgeClass,

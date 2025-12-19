@@ -225,6 +225,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useCrawler } from './composables/useCrawler.js'
 import { formatTime } from './utils/timeFormatting.js'
+import { groupStatusCodesByHundreds } from './utils/statusBadges.js'
 import CrawlerInput from './components/CrawlerInput.vue'
 import ResultsStats from './components/ResultsStats.vue'
 import ResultsTable from './components/ResultsTable.vue'
@@ -253,13 +254,11 @@ export default {
     const savedCrawls = computed(() => crawler.getSavedCrawls())
 
     const statusCodeList = computed(() => {
-      const codes = new Set()
-      crawler.pages.value.forEach(page => {
-        if (page.statusCode !== null && page.statusCode !== undefined) {
-          codes.add(page.statusCode)
-        }
-      })
-      return Array.from(codes).sort((a, b) => a - b)
+      const codes = crawler.pages.value
+        .map(page => page.statusCode)
+        .filter(code => code !== null && code !== undefined)
+      const grouped = groupStatusCodesByHundreds(codes)
+      return grouped.map(item => item.group)
     })
 
     const pendingPages = computed(() =>
@@ -281,7 +280,17 @@ export default {
 
       // Apply status filter
       if (statusFilter.value) {
-        result = result.filter(p => p.statusCode === statusFilter.value)
+        // Handle grouped status codes (e.g., "3XX")
+        if (statusFilter.value.endsWith('XX')) {
+          const hundreds = parseInt(statusFilter.value)
+          result = result.filter(p => {
+            if (!p.statusCode) return false
+            return Math.floor(p.statusCode / 100) === hundreds
+          })
+        } else {
+          // Handle specific status codes
+          result = result.filter(p => p.statusCode === statusFilter.value)
+        }
       }
 
       // Apply external/internal filter
@@ -466,6 +475,15 @@ export default {
     }
 
     function getStatusCount(code) {
+      // Handle grouped status codes (e.g., "3XX")
+      if (code.endsWith('XX')) {
+        const hundreds = parseInt(code)
+        return crawler.pages.value.filter(p => {
+          if (!p.statusCode) return false
+          return Math.floor(p.statusCode / 100) === hundreds
+        }).length
+      }
+      // Handle specific status codes
       return crawler.pages.value.filter(p => p.statusCode === code).length
     }
 
