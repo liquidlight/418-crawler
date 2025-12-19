@@ -48,7 +48,8 @@ app.post('/fetch', async (req, res) => {
       new URL(url)
     } catch (e) {
       return res.status(400).json({
-        error: 'Invalid URL format'
+        error: 'Invalid URL format',
+        details: e.message
       })
     }
 
@@ -100,7 +101,7 @@ app.post('/fetch', async (req, res) => {
       url: response.url // Include final URL in case of redirects
     })
   } catch (error) {
-    console.error('Fetch error:', error)
+    console.error('Fetch error:', error.message)
 
     // Handle specific error types
     let statusCode = 500
@@ -113,6 +114,9 @@ app.post('/fetch', async (req, res) => {
       statusCode = 503
       errorMessage = 'Connection refused'
     } else if (error.code === 'ETIMEDOUT') {
+      statusCode = 408
+      errorMessage = 'Request timeout'
+    } else if (error.code === 'ERR_HTTP_REQUEST_TIMEOUT') {
       statusCode = 408
       errorMessage = 'Request timeout'
     }

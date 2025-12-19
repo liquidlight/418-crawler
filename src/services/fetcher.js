@@ -34,6 +34,22 @@ export async function fetchUrl(url, options = {}) {
     const proxyResponse = await Promise.race([fetchPromise, timeoutPromise])
 
     if (!proxyResponse.ok) {
+      // Handle specific proxy errors gracefully
+      if (proxyResponse.status === 400) {
+        // 400 Bad Request from proxy often means the site is blocking access
+        const result = await proxyResponse.json().catch(() => ({}))
+        const responseTime = Date.now() - startTime
+        return {
+          ok: false,
+          status: 403,  // Treat as Forbidden/Blocked
+          statusText: 'Blocked',
+          headers: {},
+          data: '',
+          error: result.error || 'Site blocks automated requests',
+          responseTime,
+          url
+        }
+      }
       throw new Error(`Proxy server error: ${proxyResponse.status} ${proxyResponse.statusText}`)
     }
 
