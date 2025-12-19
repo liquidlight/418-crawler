@@ -16,6 +16,7 @@
                 {{ sortOrder === 'asc' ? '▲' : '▼' }}
               </span>
             </th>
+            <th>Type</th>
             <th @click="toggleSort('url')" class="sortable url-col">
               URL
               <span v-if="sortBy === 'url'" class="sort-indicator">
@@ -44,8 +45,12 @@
               <button v-if="page.isCrawled" :class="getStatusBadgeClass(page.statusCode)" class="badge badge-clickable" @click="$emit('filter-status', page.statusCode)" :title="'Filter by status ' + page.statusCode">
                 {{ page.statusCode }}
               </button>
-              <span v-else-if="page.isExternal" class="badge badge-external">external</span>
               <span v-else class="badge badge-pending">pending</span>
+            </td>
+            <td class="type-cell">
+              <span class="badge" :class="page.isExternal ? 'badge-external' : 'badge-internal'">
+                {{ page.isExternal ? 'external' : 'internal' }}
+              </span>
             </td>
             <td class="url-cell">
               <a :href="page.url" target="_blank" rel="noopener noreferrer" class="url-link">
@@ -216,6 +221,10 @@ export default {
   width: 60px;
 }
 
+.type-cell {
+  width: 75px;
+}
+
 .url-cell {
   max-width: 280px;
 }
@@ -333,6 +342,11 @@ export default {
 .badge-external {
   background: #e8f4f8;
   color: #0277bd;
+}
+
+.badge-internal {
+  background: #f0f4ff;
+  color: #667eea;
 }
 
 .text-muted {
