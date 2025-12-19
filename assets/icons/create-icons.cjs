@@ -14,12 +14,11 @@ if (!fs.existsSync(iconsDir)) {
   fs.mkdirSync(iconsDir, { recursive: true });
 }
 
-// SVG icon content
+// SVG icon content - Teapot emoji
 const svgIcon = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#667eea"/>
-  <rect x="64" y="64" width="384" height="384" rx="40" fill="#764ba2"/>
-  <text x="256" y="300" font-size="120" font-weight="bold" fill="white" text-anchor="middle" font-family="system-ui">SC</text>
+  <rect width="512" height="512" fill="#f5f5f5"/>
+  <text x="256" y="380" font-size="320" text-anchor="middle" font-family="system-ui">🫖</text>
 </svg>
 `;
 

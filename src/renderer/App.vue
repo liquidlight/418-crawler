@@ -3,7 +3,7 @@
     <!-- Header -->
     <header class="app-header">
       <div class="header-left">
-        <h1>Site Crawler</h1>
+        <h1>418 🫖</h1>
       </div>
       <div class="header-right">
         <span v-if="crawlState.rootUrl" class="status-text">{{ statusLabel }}</span>
@@ -30,9 +30,9 @@
     <main class="app-main">
       <div v-if="!crawlState.rootUrl" class="empty-state">
         <div class="empty-content">
-          <h2>Website Crawler</h2>
-          <p class="empty-subtitle">Crawl websites locally and analyze their structure</p>
-          <p class="empty-instruction">Enter a website URL above to start crawling</p>
+          <h2>418: I'm a teapot</h2>
+          <p class="empty-subtitle">I'm a short and stout teapot</p>
+          <p class="empty-instruction">Here's my handle, here's my spout</p>
         </div>
 
         <div class="previous-section">

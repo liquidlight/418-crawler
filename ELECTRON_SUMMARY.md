@@ -36,7 +36,7 @@ src/electron/
 - Successfully builds Vue app with Vite
 - electron-builder creates working DMG file
 - App bundle includes all necessary Electron frameworks
-- Output: `Site Crawler-0.1.0-arm64.dmg` (90MB)
+- Output: `418-0.1.1-arm64.dmg` (90MB)
 
 ## npm Commands
 
@@ -45,7 +45,7 @@ src/electron/
 - **`npm run dev:web`** - Web app in browser (http://localhost:5173)
 
 ### Build
-- **`npm run build`** - Electron DMG for distribution (`dist-electron/Site Crawler-0.1.0-arm64.dmg`)
+- **`npm run build`** - Electron DMG for distribution (`dist-electron/418-0.1.1-arm64.dmg`)
 - **`npm run build:web`** - Web files for distribution (`dist/`)
 
 This is a fully portable, self-contained application that doesn't require:
@@ -146,7 +146,7 @@ open dist-electron/Site\ Crawler-0.1.0-arm64.dmg
 ┌─────────────────────────────────────┐
 │      User's Mac (Apple Silicon)     │
 ├─────────────────────────────────────┤
-│  Site Crawler.app (DMG installed)   │
+│  418: I'm a teapot.app (DMG installed) │
 │  ├── Electron Framework             │
 │  ├── Vue 3 App (dist/)              │
 │  ├── Node.js Proxy Server           │
@@ -167,5 +167,5 @@ You have a portable DMG file that users can simply download and run. The app is 
 ---
 
 **Last updated:** 2024-12-19
-**Build output:** `dist-electron/Site Crawler-0.1.0-arm64.dmg`
+**Build output:** `dist-electron/418-0.1.1-arm64.dmg`
 **Status:** Ready for production

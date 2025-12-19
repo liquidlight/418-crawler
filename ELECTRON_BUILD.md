@@ -21,7 +21,7 @@ Runs the app at http://localhost:5173 in your browser
 ```bash
 npm run build
 ```
-Creates: `dist-electron/Site Crawler-0.1.0-arm64.dmg` (90MB)
+Creates: `dist-electron/418-0.1.1-arm64.dmg` (90MB)
 
 ### Build Web (Distribution)
 ```bash
@@ -72,7 +72,7 @@ The app automatically handles port allocation:
 The built DMG file is portable and requires no installation:
 
 1. **Build:** `npm run electron-dmg`
-2. **Share:** Send `dist-electron/Site Crawler-0.1.0-arm64.dmg` to users
+2. **Share:** Send `dist-electron/418-0.1.1-arm64.dmg` to users
 3. **Users:** Double-click DMG, drag app to Applications folder
 
 ## What's Included

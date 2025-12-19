@@ -24,7 +24,7 @@
    ```bash
    # Kill any existing processes
    killall node 2>/dev/null || true
-   killall "Site Crawler" 2>/dev/null || true
+   killall "418" 2>/dev/null || true
 
    # Then try again
    npm run electron-dev
@@ -32,7 +32,7 @@
 
 4. **If app still doesn't appear:**
    - The window might be loading. Give it 15-20 seconds
-   - Check Activity Monitor for "Site Crawler" process
+   - Check Activity Monitor for "418" process
    - If the process exists, the app is running but the window may be hidden
 
 ### Production Build (DMG or Built App)
@@ -47,18 +47,18 @@
    ls -lh dist-electron/*.dmg
 
    # Check if built app exists
-   ls -la "dist-electron/mac-arm64/Site Crawler.app"
+   ls -la "dist-electron/mac-arm64/418.app"
    ```
 
 2. **Try launching directly**
    ```bash
    # Test the built app
-   open "dist-electron/mac-arm64/Site Crawler.app"
+   open "dist-electron/mac-arm64/418.app"
    ```
 
 3. **Check macOS Security**
    - System Preferences → Security & Privacy → General
-   - Look for message about "Site Crawler"
+   - Look for message about "418"
    - Click "Open Anyway"
 
 4. **Check for app crash**
@@ -67,7 +67,7 @@
    ~/Library/Logs/DiagnosticMessages/
 
    # Or check system logs
-   log stream --process "Site Crawler"
+   log stream --process "418"
    ```
 
 ## Issue: Blank window after app opens

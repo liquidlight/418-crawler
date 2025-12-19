@@ -1,6 +1,6 @@
 {
-  "name": "site-crawler",
-  "version": "0.1.0",
+  "name": "418-teapot",
+  "version": "0.1.1",
   "type": "module",
   "main": "out/main/index.cjs",
   "scripts": {
@@ -24,9 +24,9 @@
     "electron-builder": "^24.6.0"
   },
   "build": {
-    "appId": "org.sitecrawler.app",
-    "productName": "Site Crawler",
-    "copyright": "Copyright © 2024 Site Crawler",
+    "appId": "org.418teapot.app",
+    "productName": "418",
+    "copyright": "Copyright © 2024 418: I'm a teapot",
     "files": [
       "out/**/*",
       "node_modules/**/*"
@@ -81,7 +81,7 @@
           "type": "file"
         }
       ],
-      "title": "Site Crawler Installer",
+      "title": "418 Installer",
       "window": {
         "width": 540,
         "height": 320
