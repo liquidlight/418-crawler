@@ -4,17 +4,17 @@
       <div class="log-summary">
         <span class="count">{{ logs.length }} events</span>
       </div>
-      <button @click="clearLogs" class="clear-btn">Clear Logs</button>
+      <button @click="clearLogs" class="clear-btn">Clear</button>
     </div>
-    
+
     <div class="log-list" ref="logContainer">
       <div v-if="logs.length === 0" class="empty-state">
-        No logs captured yet.
+        No logs yet
       </div>
       <div v-else v-for="log in logs" :key="log.id" :class="['log-item', log.level]">
-        <span class="timestamp">[{{ log.timestamp }}]</span>
-        <span class="level">{{ log.level.toUpperCase() }}:</span>
-        <pre class="message">{{ log.message }}</pre>
+        <span class="timestamp">{{ log.timestamp }}</span>
+        <span class="level">{{ log.level }}</span>
+        <span class="message">{{ log.message }}</span>
       </div>
     </div>
   </div>
@@ -34,7 +34,7 @@ const { logs, clearLogs } = useLogger()
   background: #1e1e1e;
   color: #d4d4d4;
   font-family: 'Consolas', 'Monaco', monospace;
-  border-radius: 4px;
+  font-size: 12px;
   overflow: hidden;
 }
 
@@ -42,76 +42,98 @@ const { logs, clearLogs } = useLogger()
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: #252526;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #3e3e42;
+  flex-shrink: 0;
 }
 
 .log-summary {
-  font-size: 0.85rem;
+  font-size: 11px;
   color: #888;
 }
 
 .clear-btn {
   background: #333;
-  color: #ccc;
+  color: #999;
   border: 1px solid #444;
-  padding: 4px 8px;
-  border-radius: 3px;
-  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-size: 11px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .clear-btn:hover {
-  background: #444;
-  color: #fff;
+  background: #3e3e42;
+  color: #ccc;
+  border-color: #555;
 }
 
 .log-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 0;
 }
 
 .log-item {
-  display: flex;
-  align-items: flex-start;
-  padding: 4px 0;
-  border-bottom: 1px solid #333;
-  font-size: 0.85rem;
-}
-
-.log-item:last-child {
-  border-bottom: none;
-}
-
-.timestamp {
-  color: #888;
-  margin-right: 8px;
+  display: grid;
+  grid-template-columns: 55px 45px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 3px 8px;
+  border-bottom: 1px solid #2d2d30;
+  line-height: 1.4;
   white-space: nowrap;
 }
 
-.level {
-  font-weight: bold;
-  margin-right: 8px;
-  min-width: 50px;
+.log-item > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.log-item.log .level { color: #61afef; }
-.log-item.debug .level { color: #98c379; }
-.log-item.warn .level { color: #e5c07b; }
-.log-item.error .level { color: #e06c75; }
+.log-item .message {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.timestamp {
+  color: #6a6a6a;
+  font-size: 11px;
+}
+
+.level {
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.log-item.log .level {
+  color: #569cd6;
+}
+
+.log-item.debug .level {
+  color: #6a9955;
+}
+
+.log-item.warn .level {
+  color: #dcdcaa;
+}
+
+.log-item.error .level {
+  color: #f48771;
+}
 
 .message {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-all;
-  flex: 1;
+  color: #ababab;
+  font-size: 12px;
 }
 
 .empty-state {
   padding: 20px;
   text-align: center;
-  color: #666;
+  color: #555;
+  font-size: 12px;
 }
 </style>
