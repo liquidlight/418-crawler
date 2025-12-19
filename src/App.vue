@@ -92,6 +92,29 @@
             </div>
           </div>
 
+          <!-- External/Internal Filters -->
+          <div v-if="crawler.pages.value.length > 0" class="external-filters-sidebar">
+            <div class="external-filters-title">Link Type</div>
+            <div class="external-filter-buttons">
+              <button
+                @click="externalFilter = externalFilter === false ? null : false"
+                :class="{ active: externalFilter === false }"
+                class="external-filter-btn"
+              >
+                <span class="label">Internal</span>
+                <span class="count">({{ internalCount }})</span>
+              </button>
+              <button
+                @click="externalFilter = externalFilter === true ? null : true"
+                :class="{ active: externalFilter === true }"
+                class="external-filter-btn"
+              >
+                <span class="label">External</span>
+                <span class="count">({{ externalCount }})</span>
+              </button>
+            </div>
+          </div>
+
         </aside>
 
         <!-- Main Content -->
@@ -202,6 +225,7 @@ export default {
     const selectedPage = ref(null)
     const error = ref(null)
     const statusFilter = ref(null)
+    const externalFilter = ref(null) // null = all, true = external only, false = internal only
     const activeTab = ref('overview')
 
     const statusCounts = computed(() => crawler.statusCounts)
@@ -223,11 +247,28 @@ export default {
 
     const pendingCount = computed(() => pendingPages.value.length)
 
+    const externalCount = computed(() =>
+      crawler.pages.value.filter(p => p.isExternal).length
+    )
+
+    const internalCount = computed(() =>
+      crawler.pages.value.filter(p => !p.isExternal).length
+    )
+
     const filteredPages = computed(() => {
-      if (!statusFilter.value) {
-        return crawler.pages.value
+      let result = crawler.pages.value
+
+      // Apply status filter
+      if (statusFilter.value) {
+        result = result.filter(p => p.statusCode === statusFilter.value)
       }
-      return crawler.pages.value.filter(p => p.statusCode === statusFilter.value)
+
+      // Apply external/internal filter
+      if (externalFilter.value !== null) {
+        result = result.filter(p => p.isExternal === externalFilter.value)
+      }
+
+      return result
     })
 
     const progressPercent = computed(() => {
@@ -365,6 +406,7 @@ export default {
       selectedPage,
       error,
       statusFilter,
+      externalFilter,
       activeTab,
       statusCounts,
       fileTypeCounts,
@@ -375,6 +417,8 @@ export default {
       filteredPages,
       pendingPages,
       pendingCount,
+      externalCount,
+      internalCount,
       queueUrls: crawler.queueUrls,
       progressPercent,
       crawlSpeed,
@@ -631,6 +675,50 @@ export default {
   float: right;
   color: inherit;
   opacity: 0.8;
+}
+
+.external-filters-sidebar {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e1e4e8;
+}
+
+.external-filters-title {
+  font-size: 0.75rem;
+  color: #24292e;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.external-filter-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.external-filter-btn {
+  padding: 0.4rem 0.6rem;
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: #24292e;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-weight: 500;
+}
+
+.external-filter-btn:hover {
+  background: #e1e4e8;
+  border-color: #d1d5da;
+}
+
+.external-filter-btn.active {
+  background: #0366d6;
+  color: white;
+  border-color: #0366d6;
 }
 
 .sidebar-section {

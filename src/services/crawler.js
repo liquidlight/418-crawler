@@ -194,11 +194,14 @@ export class Crawler {
         this.state.stats.errors++
       }
 
-      // Extract and queue same-domain links only (not external links)
-      // External links will be tracked in-links but not have their links extracted
-      if (page.outLinks.length > 0) {
+      // Extract and queue links based on page type
+      // Internal pages: extract and queue all their outLinks
+      // External pages: don't extract or queue their links
+      const linksToQueue = page.isExternal ? [] : page.outLinks
+
+      if (linksToQueue.length > 0) {
         let discoveredCount = 0
-        for (const link of page.outLinks) {
+        for (const link of linksToQueue) {
           const normalizedLink = normalizeUrl(link, url)
           // Only add to queue if not already in visited or queue
           if (normalizedLink && !this.state.isVisited(normalizedLink)) {
@@ -225,11 +228,13 @@ export class Crawler {
             console.debug(`Discovered ${discoveredCount} URLs from ${url}. Total in queue: ${this.state.queue.length}, Total found: ${this.state.stats.pagesFound}`)
           }
         }
+      } else if (page.isExternal) {
+        console.debug(`External page crawled: ${url} (${page.statusCode}) - metadata logged, links not extracted`)
       } else {
         console.debug(`No links found in ${url}`)
       }
 
-      // Update in-links for all discovered URLs
+      // Update in-links for all discovered URLs (both internal outLinks and externalLinks)
       await this.updateInLinks(url, page.outLinks, page.externalLinks)
     } catch (error) {
       console.error(`Error processing ${url}:`, error)

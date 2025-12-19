@@ -1,1 +1,2 @@
 - Commit after each phase of work
+- Do not parse code in @app-build
