@@ -45,7 +45,8 @@ export function parsePage(url, response, baseDomain, depth = 0) {
   })
 
   // Only parse HTML content
-  if (fileType === 'html' && status === 200 && data) {
+  // We parse even if status is not 200, to capture links from redirect/error pages
+  if (fileType === 'html' && data) {
     try {
       parseHtmlContent(page, data, url, baseDomain)
     } catch (error) {
@@ -109,11 +110,15 @@ function parseHtmlContent(page, htmlData, baseUrl, baseDomain) {
         // Skip anchor-only links
         if (href.trim().startsWith('#')) return
 
-        // Skip non-HTTP protocols (tel:, mailto:, javascript:, etc.)
+        // Skip non-HTTP(S) protocols (tel:, mailto:, javascript:, data:, etc.)
         const hrefLower = href.toLowerCase().trim()
-        if (hrefLower.startsWith('tel:') || hrefLower.startsWith('mailto:') ||
-            hrefLower.startsWith('javascript:') || hrefLower.startsWith('data:')) {
-          return
+        if (!hrefLower.startsWith('http://') && !hrefLower.startsWith('https://') &&
+            !hrefLower.startsWith('//')) {
+          // Skip non-http protocols entirely
+          if (hrefLower.includes(':') || hrefLower.startsWith('#')) {
+            return
+          }
+          // Allow relative URLs (which will be resolved via baseUrl)
         }
 
         const normalizedLink = normalizeUrl(href, baseUrl)

@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { openDB } from 'idb'
 import { SCHEMA, initializeSchema } from '../db/schema.js'
 import { CrawlState } from '../models/CrawlState.js'
-import { isSameDomain } from '../utils/url.js'
+import { isSameDomain, normalizeUrl } from '../utils/url.js'
 
 let db = null
 
@@ -20,7 +20,7 @@ export function useDatabase() {
     try {
       db = await openDB(SCHEMA.name, SCHEMA.version, {
         upgrade(db, oldVersion, newVersion, transaction) {
-          initializeSchema(db)
+          initializeSchema(db, oldVersion, newVersion, transaction)
         }
       })
       isInitialized.value = true
@@ -38,6 +38,10 @@ export function useDatabase() {
   async function savePage(page) {
     if (!db) throw new Error('Database not initialized')
     const pageData = page.toJSON ? page.toJSON() : page
+    // Ensure normalizedUrl is present (for index)
+    if (!pageData.normalizedUrl) {
+      pageData.normalizedUrl = normalizeUrl(pageData.url) || pageData.url
+    }
     return await db.put('pages', pageData)
   }
 
@@ -46,7 +50,8 @@ export function useDatabase() {
    */
   async function getPage(url) {
     if (!db) throw new Error('Database not initialized')
-    return await db.get('pages', url)
+    const normalized = normalizeUrl(url) || url
+    return await db.get('pages', normalized)
   }
 
   /**
@@ -72,7 +77,8 @@ export function useDatabase() {
    */
   async function deletePage(url) {
     if (!db) throw new Error('Database not initialized')
-    return await db.delete('pages', url)
+    const normalized = normalizeUrl(url) || url
+    return await db.delete('pages', normalized)
   }
 
   /**
@@ -90,22 +96,25 @@ export function useDatabase() {
   async function addInLink(toUrl, fromUrl, baseDomain = '', rootUrl = '') {
     if (!db) throw new Error('Database not initialized')
 
-    let page = await getPage(toUrl)
+    const normalizedTo = normalizeUrl(toUrl) || toUrl
+    const normalizedFrom = normalizeUrl(fromUrl) || fromUrl
+
+    let page = await db.get('pages', normalizedTo)
     if (!page) {
       // Determine if this URL is external using actual root URL for consistency
       // Use the actual root URL from crawler state instead of reconstructing it
       const baseUrlForCheck = rootUrl || (baseDomain ? `https://${baseDomain}` : fromUrl)
-      const isExternal = !isSameDomain(toUrl, baseUrlForCheck, baseDomain)
+      const isExternal = !isSameDomain(normalizedTo, baseUrlForCheck, baseDomain)
 
       // Create a new placeholder page
       page = {
-        url: toUrl,
-        normalizedUrl: toUrl,
+        url: normalizedTo, // Use normalized as canonical URL to match crawler behavior
+        normalizedUrl: normalizedTo,
         domain: baseDomain,
         statusCode: null,
         isCrawled: false,
         isExternal,
-        inLinks: [fromUrl],
+        inLinks: [normalizedFrom],
         outLinks: [],
         externalLinks: [],
         assets: []
@@ -113,8 +122,8 @@ export function useDatabase() {
     } else {
       // Add to existing page's in-links
       if (!page.inLinks) page.inLinks = []
-      if (!page.inLinks.includes(fromUrl)) {
-        page.inLinks.push(fromUrl)
+      if (!page.inLinks.includes(normalizedFrom)) {
+        page.inLinks.push(normalizedFrom)
       }
     }
 

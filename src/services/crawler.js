@@ -32,6 +32,7 @@ export class Crawler {
     this.requestDelay = options.requestDelay || CRAWLER_DEFAULTS.REQUEST_DELAY
     this.requestTimeout = options.requestTimeout || CRAWLER_DEFAULTS.REQUEST_TIMEOUT
     this.crawlResources = options.crawlResources !== undefined ? options.crawlResources : CRAWLER_DEFAULTS.CRAWL_RESOURCES
+    this.maxDepth = options.maxDepth !== undefined ? options.maxDepth : CRAWLER_DEFAULTS.MAX_DEPTH
 
     // Event handlers
     this.onProgress = options.onProgress || (() => {})
@@ -189,6 +190,11 @@ export class Crawler {
         throw new Error('No response received from fetcher')
       }
 
+      // Check if stopped during fetch
+      if (!this.state.isActive) {
+        return
+      }
+
       // Parse the page
       const page = parsePage(url, response, this.baseDomain, depth)
 
@@ -206,19 +212,14 @@ export class Crawler {
         if (location) {
           const redirectTarget = normalizeUrl(location, url)
           if (redirectTarget) {
-            // Add redirect target as an outlink on the redirect source
-            if (!page.outLinks.includes(redirectTarget)) {
-              page.outLinks.push(redirectTarget)
-            }
-            if (!this.state.isVisited(redirectTarget)) {
-              // Check if already in queue
-              const alreadyInQueue = this.state.queue.some(item => item.url === redirectTarget)
-              if (!alreadyInQueue) {
-                this.state.addToQueue(redirectTarget, depth + 1)
-                this.state.stats.pagesFound++
-                console.debug(`Queued redirect target: ${url} (${response.status}) -> ${redirectTarget}`)
-                // Don't emit url-discovered event - the redirect target is already in the queue
-                // and will be processed in the next iteration of the crawl loop
+            // Add redirect target to appropriate list
+            if (isSameDomain(redirectTarget, url, this.baseDomain)) {
+              if (!page.outLinks.includes(redirectTarget)) {
+                page.outLinks.push(redirectTarget)
+              }
+            } else {
+              if (!page.externalLinks.includes(redirectTarget)) {
+                page.externalLinks.push(redirectTarget)
               }
             }
           }
@@ -226,8 +227,8 @@ export class Crawler {
       }
 
       // Extract and queue links based on page type
-      // Internal pages: extract and queue all their outLinks
-      // External pages: don't extract their links (but should be crawled for status codes)
+      // Internal pages: extract and queue all their outLinks (respecting max depth)
+      // External pages: don't extract their links
       const linksToQueue = page.isExternal ? [] : page.outLinks
 
       if (linksToQueue.length > 0) {
@@ -239,17 +240,20 @@ export class Crawler {
             // Check if already in queue
             const alreadyInQueue = this.state.queue.some(item => item.url === normalizedLink)
             if (!alreadyInQueue) {
-              // Don't mark as visited yet - will be marked when actually processing
-              this.state.addToQueue(normalizedLink, depth + 1)
-              this.state.stats.pagesFound++
-              discoveredCount++
-              // Emit discovered URL (internal link)
-              this.onPageProcessed({
-                type: 'url-discovered',
-                url: normalizedLink,
-                depth: depth + 1,
-                isExternal: false
-              })
+              // Check if we haven't exceeded max depth
+              if (depth + 1 <= this.maxDepth) {
+                // Don't mark as visited yet - will be marked when actually processing
+                this.state.addToQueue(normalizedLink, depth + 1)
+                this.state.stats.pagesFound++
+                discoveredCount++
+                // Emit discovered URL (internal link)
+                this.onPageProcessed({
+                  type: 'url-discovered',
+                  url: normalizedLink,
+                  depth: depth + 1,
+                  isExternal: false
+                })
+              }
             }
           }
         }
@@ -269,33 +273,10 @@ export class Crawler {
       // Update in-links for all discovered URLs (both internal outLinks and externalLinks)
       await this.updateInLinks(url, page.outLinks, page.externalLinks)
 
-      // Queue and emit discovered external links to get their status codes
+      // Don't queue external links - only crawl the same domain
+      // External links are recorded but not crawled to prevent scope creep
       if (!page.isExternal && page.externalLinks.length > 0) {
-        let externalQueuedCount = 0
-        for (const externalLink of page.externalLinks) {
-          const normalizedLink = normalizeUrl(externalLink, url)
-          if (normalizedLink && !this.state.isVisited(normalizedLink)) {
-            // Check if already in queue
-            const alreadyInQueue = this.state.queue.some(item => item.url === normalizedLink)
-            if (!alreadyInQueue) {
-              // Queue external links for crawling to get their status codes
-              this.state.addToQueue(normalizedLink, depth + 1)
-              this.state.stats.pagesFound++
-              externalQueuedCount++
-              // Emit discovered external URL event
-              this.onPageProcessed({
-                type: 'url-discovered',
-                url: normalizedLink,
-                depth: depth + 1,
-                isExternal: true
-              })
-            }
-          }
-        }
-        if (externalQueuedCount > 0) {
-          console.debug(`Queued ${externalQueuedCount} external links from ${url}`)
-          this.emitProgress()
-        }
+        console.debug(`Found ${page.externalLinks.length} external links in ${url} (not queued - same domain only)`)
       }
 
       // Crawl resources if enabled
@@ -328,6 +309,34 @@ export class Crawler {
       console.error(`Error processing ${url}:`, error)
       this.state.stats.errors++
       this.onError(error)
+
+      // Notify UI about the failed page to remove it from pending
+      // This handles cases where the error occurred before parsePage/onPageProcessed
+      const isExternal = !isSameDomain(url, `https://${this.baseDomain}`, this.baseDomain)
+      const failedPage = {
+        url,
+        normalizedUrl: normalizeUrl(url) || url,
+        domain: this.baseDomain,
+        statusCode: -1, // Use -1 to indicate system error
+        errorMessage: error.message || 'Processing error',
+        fileType: 'error',
+        contentType: '',
+        responseTime: 0,
+        size: 0,
+        outLinks: [],
+        inLinks: [],
+        externalLinks: [],
+        assets: [],
+        isCrawled: true,
+        isExternal,
+        depth,
+        crawledAt: new Date().toISOString()
+      }
+      try {
+        this.onPageProcessed(failedPage)
+      } catch (e) {
+        console.error('Error reporting failed page:', e)
+      }
     } finally {
       this.state.removeInProgress(url)
     }

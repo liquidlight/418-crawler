@@ -39,10 +39,12 @@ export function normalizeUrl(url, baseUrl = null) {
     // Remove hash
     parsed.hash = ''
 
-    // Remove trailing slash (except for root)
-    if (parsed.pathname !== '/') {
-      parsed.pathname = parsed.pathname.replace(/\/$/, '')
-    }
+    // Trailing slash handling:
+    // User requested to KEEP trailing slashes to distinguish between /page and /page/
+    // as they may have different status codes (200 vs 404 vs 301).
+    // if (parsed.pathname !== '/') {
+    //   parsed.pathname = parsed.pathname.replace(/\/$/, '')
+    // }
 
     // Sort query parameters alphabetically for consistency
     const params = new URLSearchParams(parsed.search)

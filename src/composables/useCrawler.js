@@ -1,6 +1,7 @@
 import { ref, computed, watch, markRaw, shallowRef } from 'vue'
 import { Crawler } from '../services/crawler.js'
 import { useDatabase } from './useDatabase.js'
+import { normalizeUrl } from '../utils/url.js'
 
 const DEFAULT_CRAWL_STATE = {
   isActive: false,
@@ -29,6 +30,7 @@ export function useCrawler() {
   const pages = shallowRef([])
   const error = ref(null)
   const isInitialized = ref(false)
+  const isStopping = ref(false)
 
   // Computed properties
   const statusCounts = computed(() => {
@@ -153,6 +155,7 @@ export function useCrawler() {
       await db.saveCrawlState(crawlerInstance.getSaveableState())
 
       // Start crawling
+      isStopping.value = false
       crawlerInstance.start()
     } catch (e) {
       error.value = e.message
@@ -188,8 +191,10 @@ export function useCrawler() {
    */
   async function stopCrawl() {
     if (crawlerInstance && crawlState.value.isActive) {
+      isStopping.value = true
       crawlerInstance.stop()
-      crawlState.value.isActive = false
+      // We don't manually set isActive=false here, we let handleProgress do it
+      // masking the actual winding-down state of the crawler
       await db.saveCrawlState(crawlerInstance.getSaveableState())
     }
   }
@@ -204,6 +209,7 @@ export function useCrawler() {
       crawlState.value = { ...DEFAULT_CRAWL_STATE }
       crawlerInstance = null
       error.value = null
+      isStopping.value = false
     } catch (e) {
       error.value = e.message
       console.error('Failed to reset crawl:', e)
@@ -239,6 +245,10 @@ export function useCrawler() {
    * Handle progress updates
    */
   async function handleProgress(state) {
+    // If we are in the process of stopping, force UI to show stopped
+    if (isStopping.value) {
+      state.isActive = false
+    }
     updateCrawlState(state)
     await db.saveCrawlState(crawlerInstance.getSaveableState())
   }
@@ -271,9 +281,11 @@ export function useCrawler() {
     else if (page.type === 'inlink-update') {
       await db.addInLink(page.toUrl, page.fromUrl, crawlState.value.baseDomain, crawlState.value.rootUrl)
       // Reload the page from database to get updated inLinks
-      const updatedPage = await db.getPage(page.toUrl)
+      // Use normalizeUrl(page.toUrl) because addInLink uses that as the key
+      const lookupUrl = normalizeUrl(page.toUrl) || page.toUrl
+      const updatedPage = await db.getPage(lookupUrl)
       if (updatedPage) {
-        const existingIndex = pages.value.findIndex(p => p.url === page.toUrl)
+        const existingIndex = pages.value.findIndex(p => p.url === updatedPage.url)
         if (existingIndex >= 0) {
           const updated = [...pages.value]
           updated[existingIndex] = markRaw(updatedPage)
@@ -296,6 +308,7 @@ export function useCrawler() {
 
       // Add to pages array - use markRaw to prevent circular references in reactivity
       const existingIndex = pages.value.findIndex(p => p.url === page.url)
+      
       if (existingIndex >= 0) {
         const updated = [...pages.value]
         updated[existingIndex] = markRaw(page)
@@ -310,14 +323,16 @@ export function useCrawler() {
    * Add a discovered URL (pending crawl) to the pages list and database
    */
   async function addDiscoveredUrl(url, depth = 0, isExternal = false) {
-    // Check if URL already exists in pages
-    const exists = pages.value.find(p => p.url === url)
+    const normalizedUrl = normalizeUrl(url) || url
+    
+    // Check if URL already exists in pages (by canonical url)
+    const exists = pages.value.find(p => p.url === normalizedUrl)
     if (exists) return
 
     // Create a pending page placeholder
     const pendingPage = {
-      url,
-      normalizedUrl: url,
+      url: normalizedUrl, // Use normalized as canonical URL
+      normalizedUrl,
       domain: crawlState.value.baseDomain || '',
       statusCode: null,
       title: '(pending)',
@@ -357,6 +372,7 @@ export function useCrawler() {
    * Handle crawl complete event
    */
   async function handleComplete(state) {
+    isStopping.value = false
     updateCrawlState(state)
     await db.saveCrawlState(crawlerInstance.getSaveableState())
   }

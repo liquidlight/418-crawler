@@ -5,7 +5,8 @@ export const CRAWLER_DEFAULTS = {
   FOLLOW_REDIRECTS: true,
   RESPECT_ROBOTS_TXT: false,
   AUTO_SAVE_INTERVAL: 50,
-  CRAWL_RESOURCES: true
+  CRAWL_RESOURCES: false,
+  MAX_DEPTH: 3
 }
 
 export const FILE_TYPES = {
@@ -22,7 +23,7 @@ export const FILE_TYPES = {
 export const PROXY_URL = typeof __PROXY_URL__ !== 'undefined' ? __PROXY_URL__ : 'http://localhost:8080/fetch'
 
 export const DB_NAME = 'SiteCrawler'
-export const DB_VERSION = 1
+export const DB_VERSION = 3
 
 export const CRAWLER_STATUS = {
   IDLE: 'idle',

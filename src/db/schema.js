@@ -10,6 +10,7 @@ export const SCHEMA = {
     pages: {
       keyPath: 'url',
       indexes: {
+        normalizedUrl: { name: 'normalizedUrl', keyPath: 'normalizedUrl' },
         statusCode: { name: 'statusCode', keyPath: 'statusCode' },
         fileType: { name: 'fileType', keyPath: 'fileType' },
         isCrawled: { name: 'isCrawled', keyPath: 'isCrawled' },
@@ -29,7 +30,12 @@ export const SCHEMA = {
  * Initializes the database schema
  * Called during database upgrade
  */
-export function initializeSchema(db) {
+export function initializeSchema(db, oldVersion, newVersion, transaction) {
+  // If upgrading, delete old pages store to recreate with new keyPath
+  if (oldVersion < newVersion && db.objectStoreNames.contains('pages')) {
+    db.deleteObjectStore('pages')
+  }
+
   // Create or update 'pages' object store
   if (!db.objectStoreNames.contains('pages')) {
     const pagesStore = db.createObjectStore('pages', { keyPath: 'url' })

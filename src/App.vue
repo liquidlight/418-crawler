@@ -124,6 +124,7 @@
             <button class="tab-btn" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">Overview</button>
             <button class="tab-btn" :class="{ active: activeTab === 'results' }" @click="activeTab = 'results'">Results ({{ pages.length }})</button>
             <button class="tab-btn" :class="{ active: activeTab === 'queue' }" @click="activeTab = 'queue'">Pending ({{ pendingCount }})</button>
+            <button class="tab-btn" :class="{ active: activeTab === 'log' }" @click="activeTab = 'log'">Log</button>
           </div>
 
           <!-- Overview Tab -->
@@ -189,6 +190,11 @@
               </div>
             </div>
           </div>
+
+          <!-- Log Tab -->
+          <div v-if="activeTab === 'log'" class="tab-content" style="padding: 0; overflow: hidden;">
+            <LogViewer />
+          </div>
         </section>
       </div>
     </main>
@@ -211,6 +217,7 @@ import CrawlerInput from './components/CrawlerInput.vue'
 import ResultsStats from './components/ResultsStats.vue'
 import ResultsTable from './components/ResultsTable.vue'
 import PageDetailModal from './components/PageDetailModal.vue'
+import LogViewer from './components/LogViewer.vue'
 
 export default {
   name: 'App',
@@ -218,7 +225,8 @@ export default {
     CrawlerInput,
     ResultsStats,
     ResultsTable,
-    PageDetailModal
+    PageDetailModal,
+    LogViewer
   },
   setup() {
     const crawler = useCrawler()
