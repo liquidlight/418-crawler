@@ -70,7 +70,7 @@
               <div class="stat-label">Pending</div>
               <div class="stat-value">{{ pendingCount }}</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" :class="{ 'clickable': crawlState.stats.errors > 0 }" @click="crawlState.stats.errors > 0 && (showErrorModal = true)">
               <div class="stat-label">Errors</div>
               <div class="stat-value" :class="{ 'text-danger': crawlState.stats.errors > 0 }">{{ crawlState.stats.errors }}</div>
             </div>
@@ -218,6 +218,13 @@
       @close="selectedPage = null"
       @navigate="handleNavigateToPage"
     />
+
+    <!-- Error details modal -->
+    <ErrorDetailsModal
+      :pages="pages"
+      :isOpen="showErrorModal"
+      @close="showErrorModal = false"
+    />
   </div>
 </template>
 
@@ -230,6 +237,7 @@ import CrawlerInput from './components/CrawlerInput.vue'
 import ResultsStats from './components/ResultsStats.vue'
 import ResultsTable from './components/ResultsTable.vue'
 import PageDetailModal from './components/PageDetailModal.vue'
+import ErrorDetailsModal from './components/ErrorDetailsModal.vue'
 import LogViewer from './components/LogViewer.vue'
 import PreviousCrawls from './components/PreviousCrawls.vue'
 
@@ -240,6 +248,7 @@ export default {
     ResultsStats,
     ResultsTable,
     PageDetailModal,
+    ErrorDetailsModal,
     LogViewer,
     PreviousCrawls
   },
@@ -247,6 +256,7 @@ export default {
     const crawler = useCrawler()
     const selectedPage = ref(null)
     const error = ref(null)
+    const showErrorModal = ref(false)
     const statusFilter = ref(null)
     const externalFilter = ref(null) // null = all, true = external only, false = internal only
     const activeTab = ref('overview')
@@ -491,6 +501,7 @@ export default {
       crawler,
       selectedPage,
       error,
+      showErrorModal,
       statusFilter,
       externalFilter,
       activeTab,
@@ -649,6 +660,17 @@ export default {
   border-radius: 4px;
   text-align: center;
   border: 1px solid #e1e4e8;
+}
+
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stat-card.clickable:hover {
+  background: #e1e4e8;
+  border-color: #d1d5da;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stat-label {
