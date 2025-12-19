@@ -87,8 +87,10 @@ export async function fetchUrl(url, options = {}) {
  * @returns {object} Response object
  */
 export async function fetchWithRetry(url, options = {}) {
-  const maxRetries = options.retries || 2
-  const retryDelay = options.retryDelay || 1000
+  // For problematic hosts, reduce retries significantly
+  const isProblematicUrl = url.includes('podvine.com') || url.includes('codepen.com') || url.includes('codebar')
+  const maxRetries = isProblematicUrl ? 0 : (options.retries || 1)
+  const retryDelay = options.retryDelay || 500
 
   let lastError = null
 
@@ -116,7 +118,11 @@ export async function fetchWithRetry(url, options = {}) {
   }
 
   // All retries exhausted
-  console.warn(`All retries exhausted for ${url}:`, lastError)
+  if (isProblematicUrl) {
+    console.debug(`URL not retrying (problematic host): ${url}`)
+  } else {
+    console.warn(`All retries exhausted for ${url}:`, lastError)
+  }
   return {
     ok: false,
     status: -1,

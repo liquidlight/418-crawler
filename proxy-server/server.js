@@ -54,9 +54,9 @@ app.post('/fetch', async (req, res) => {
     }
 
     // Prepare fetch options
+    const timeout = options.timeout || 15000  // Reduced from 30s to 15s
     const fetchOptions = {
       method: options.method || 'GET',
-      timeout: options.timeout || 30000,
       redirect: 'manual',  // Don't follow redirects - let the crawler handle them
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -70,8 +70,16 @@ app.post('/fetch', async (req, res) => {
       }
     }
 
-    // Perform the fetch
-    const response = await fetch(url, fetchOptions)
+    // Create timeout promise for manual timeout handling
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Request timeout after ${timeout}ms`))
+      }, timeout)
+    })
+
+    // Perform the fetch with timeout
+    const fetchPromise = fetch(url, fetchOptions)
+    const response = await Promise.race([fetchPromise, timeoutPromise])
 
     // Get response body as text
     const data = await response.text()
