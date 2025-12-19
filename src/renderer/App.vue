@@ -545,10 +545,11 @@ export default {
 
 <style scoped>
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #fafbfc;
+  overflow: hidden;
 }
 
 .app-header {
@@ -621,13 +622,16 @@ export default {
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .layout-grid {
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 1.5rem;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .sidebar {
@@ -639,7 +643,7 @@ export default {
   flex-direction: column;
   gap: 1rem;
   overflow-y: auto;
-  max-height: calc(100vh - 150px);
+  min-height: 0;
 }
 
 .controls-compact {
@@ -914,6 +918,8 @@ export default {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  flex: 1;
 }
 
 .tabs-header {
@@ -950,6 +956,7 @@ export default {
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .overview-grid {
@@ -1060,6 +1067,7 @@ export default {
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  min-height: 0;
 }
 
 .empty-content {
@@ -1074,8 +1082,9 @@ export default {
   border-top: 1px solid #e8e8e8;
   padding: 1.5rem;
   background: #fafbfc;
-  max-height: 500px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .empty-content h2 {
