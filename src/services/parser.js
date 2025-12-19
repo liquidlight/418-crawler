@@ -21,6 +21,9 @@ export function parsePage(url, response, baseDomain, depth = 0) {
   const contentType = headers['content-type'] || ''
   const fileType = getFileType(url, contentType)
 
+  // Determine if this page is external (not on the same domain as baseDomain)
+  const isExternal = !isSameDomain(url, `https://${baseDomain}`, baseDomain)
+
   // Create base page object
   const page = new Page(url, {
     normalizedUrl: normalizeUrl(url),
@@ -34,7 +37,7 @@ export function parsePage(url, response, baseDomain, depth = 0) {
     depth,
     crawledAt: new Date().toISOString(),
     isCrawled: true,
-    isExternal: false, // Will be determined by link comparison
+    isExternal: isExternal,  // Determine based on domain comparison
     outLinks: [],
     externalLinks: [],
     inLinks: [],

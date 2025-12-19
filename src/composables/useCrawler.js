@@ -265,7 +265,7 @@ export function useCrawler() {
 
     // Check if this is a URL discovery event
     if (page.type === 'url-discovered') {
-      addDiscoveredUrl(page.url, page.depth)
+      addDiscoveredUrl(page.url, page.depth, page.isExternal)
     }
     // Check if this is an in-link update
     else if (page.type === 'inlink-update') {
@@ -309,7 +309,7 @@ export function useCrawler() {
   /**
    * Add a discovered URL (pending crawl) to the pages list
    */
-  function addDiscoveredUrl(url, depth = 0) {
+  function addDiscoveredUrl(url, depth = 0, isExternal = false) {
     // Check if URL already exists in pages
     const exists = pages.value.find(p => p.url === url)
     if (exists) return
@@ -332,7 +332,7 @@ export function useCrawler() {
       externalLinks: [],
       assets: [],
       isCrawled: false,  // Mark as not yet crawled
-      isExternal: false,
+      isExternal: isExternal,  // Use the passed isExternal value
       depth,
       crawledAt: null
     }

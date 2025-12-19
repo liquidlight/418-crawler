@@ -212,11 +212,12 @@ export class Crawler {
               this.state.addToQueue(normalizedLink, depth + 1)
               this.state.stats.pagesFound++
               discoveredCount++
-              // Emit discovered URL
+              // Emit discovered URL (internal link)
               this.onPageProcessed({
                 type: 'url-discovered',
                 url: normalizedLink,
-                depth: depth + 1
+                depth: depth + 1,
+                isExternal: false
               })
             }
           }
@@ -236,6 +237,22 @@ export class Crawler {
 
       // Update in-links for all discovered URLs (both internal outLinks and externalLinks)
       await this.updateInLinks(url, page.outLinks, page.externalLinks)
+
+      // Emit discovered URLs for external links (they won't be queued but should be in the system)
+      if (!page.isExternal && page.externalLinks.length > 0) {
+        for (const externalLink of page.externalLinks) {
+          const normalizedLink = normalizeUrl(externalLink, url)
+          if (normalizedLink && !this.state.isVisited(normalizedLink)) {
+            // Emit discovered external URL event
+            this.onPageProcessed({
+              type: 'url-discovered',
+              url: normalizedLink,
+              depth: depth + 1,
+              isExternal: true
+            })
+          }
+        }
+      }
     } catch (error) {
       console.error(`Error processing ${url}:`, error)
       this.state.stats.errors++
