@@ -1,6 +1,8 @@
 node_modules
 dist
 dist-electron
+out
+.electron-vite
 .DS_Store
 *.log
 .env

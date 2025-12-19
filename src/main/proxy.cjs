@@ -1,9 +1,8 @@
-import express from 'express'
-import cors from 'cors'
-import fetch from 'node-fetch'
+const express = require('express')
+const cors = require('cors')
+const fetch = require('node-fetch')
 
 const app = express()
-const PORT = process.env.PROXY_PORT || process.env.PORT || 8080
 
 // Middleware
 app.use(cors())
@@ -156,9 +155,29 @@ app.use((err, req, res, next) => {
   })
 })
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`CORS proxy server running on http://localhost:${PORT}`)
-  console.log(`Send POST requests to http://localhost:${PORT}/fetch`)
-  console.log(`Health check: http://localhost:${PORT}/health`)
-})
+/**
+ * Start the proxy server
+ * @param {number} port - Port to start on (defaults to 8080)
+ * @returns {Promise<object>} Server instance
+ */
+function startProxyServer(port = 8080) {
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, 'localhost', () => {
+      console.log(`[Proxy] Running on http://localhost:${port}`)
+      console.log(`[Proxy] POST requests to http://localhost:${port}/fetch`)
+      console.log(`[Proxy] Health check: http://localhost:${port}/health`)
+      resolve(server)
+    })
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`[Proxy] Port ${port} in use, trying ${port + 1}`)
+        startProxyServer(port + 1).then(resolve).catch(reject)
+      } else {
+        reject(err)
+      }
+    })
+  })
+}
+
+module.exports = { startProxyServer }
