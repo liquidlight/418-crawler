@@ -1225,13 +1225,9 @@ export default {
   font-size: 0.8rem;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 480px) {
   .layout-grid {
     grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    max-height: auto;
   }
 
   .overview-grid {
