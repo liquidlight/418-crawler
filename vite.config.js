@@ -5,7 +5,8 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     port: 5173,
-    open: true
+    strictPort: false,
+    open: false
   },
   define: {
     __PROXY_PORT__: JSON.stringify(process.env.PROXY_PORT || '8080'),

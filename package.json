@@ -2,7 +2,7 @@
   "name": "site-crawler",
   "version": "0.1.0",
   "type": "module",
-  "main": "electron-main.js",
+  "main": "src/electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,7 +12,7 @@
     "build:prod": "vite build && npm run package",
     "package": "node scripts/package.js",
     "start:prod": "node proxy-server/server.js & vite preview",
-    "electron-dev": "concurrently \"npm run build -- --watch\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 --timeout 30000 && electron .\"",
     "electron-build": "vite build && electron-builder",
     "electron-dist": "npm run build && npm run electron-build",
     "electron-dmg": "npm run build && electron-builder --mac dmg",
@@ -36,8 +36,7 @@
     "copyright": "Copyright © 2024 Site Crawler",
     "files": [
       "dist/**/*",
-      "electron-main.js",
-      "electron-is-dev.js",
+      "src/electron/**/*",
       "proxy-server/**/*",
       "node_modules/**/*"
     ],
@@ -72,7 +71,10 @@
         "zip"
       ],
       "icon": "assets/icons/icon.icns",
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "hardenedRuntime": false,
+      "entitlements": "src/electron/entitlements.mac.plist",
+      "entitlementsInherit": "src/electron/entitlements.mac.plist"
     },
     "dmg": {
       "contents": [
@@ -87,7 +89,12 @@
           "y": 150,
           "type": "file"
         }
-      ]
+      ],
+      "title": "Site Crawler Installer",
+      "window": {
+        "width": 540,
+        "height": 320
+      }
     },
     "linux": {
       "target": [

@@ -21,9 +21,6 @@ export const FILE_TYPES = {
 // Falls back to localhost:8080 if not set
 export const PROXY_URL = typeof __PROXY_URL__ !== 'undefined' ? __PROXY_URL__ : 'http://localhost:8080/fetch'
 
-export const DB_NAME = 'SiteCrawler'
-export const DB_VERSION = 3
-
 export const CRAWLER_STATUS = {
   IDLE: 'idle',
   CRAWLING: 'crawling',
