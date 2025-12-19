@@ -249,7 +249,7 @@ export function useCrawler() {
   }
 
   /**
-   * Auto-save crawl progress to JSON every 30 seconds
+   * Auto-save crawl progress to app storage every 30 seconds
    */
   function startAutoSave(interval = 30000) {
     // Clear any existing interval
@@ -260,7 +260,8 @@ export function useCrawler() {
     autoSaveInterval = setInterval(async () => {
       try {
         const data = await db.exportData()
-        jsonStorage.autoSaveToStorage(data)
+        // Save to app's internal storage with registry
+        jsonStorage.saveCrawlToAppStorage(data)
       } catch (e) {
         console.warn('Auto-save failed:', e)
       }
@@ -306,6 +307,54 @@ export function useCrawler() {
       console.error('Failed to load from file:', e)
       return { success: false, error: e.message }
     }
+  }
+
+  /**
+   * Load crawl from app storage registry by ID
+   */
+  async function loadFromAppStorage(crawlId) {
+    try {
+      const data = jsonStorage.loadCrawlFromAppStorage(crawlId)
+      if (!data) {
+        throw new Error('Crawl not found')
+      }
+
+      // Clear current crawl
+      await db.clearAll()
+
+      // Restore pages and state
+      if (data.pages && Array.isArray(data.pages)) {
+        for (const page of data.pages) {
+          await db.savePage(page)
+        }
+      }
+
+      if (data.crawlState) {
+        await db.saveCrawlState(data.crawlState)
+        updateCrawlState(data.crawlState)
+      }
+
+      await loadPages()
+      return { success: true }
+    } catch (e) {
+      error.value = e.message
+      console.error('Failed to load from app storage:', e)
+      return { success: false, error: e.message }
+    }
+  }
+
+  /**
+   * Get list of saved crawls from registry
+   */
+  function getSavedCrawls() {
+    return jsonStorage.listSavedCrawls()
+  }
+
+  /**
+   * Delete a crawl from app storage
+   */
+  function deleteSavedCrawl(crawlId) {
+    return jsonStorage.removeFromRegistry(crawlId)
   }
 
   /**
@@ -458,11 +507,11 @@ export function useCrawler() {
     updateCrawlState(state)
     await db.saveCrawlState(crawlerInstance.getSaveableState())
 
-    // Stop auto-save and do final save
+    // Stop auto-save and do final save to app storage
     stopAutoSave()
     try {
       const data = await db.exportData()
-      jsonStorage.autoSaveToStorage(data)
+      jsonStorage.saveCrawlToAppStorage(data)
     } catch (e) {
       console.warn('Final auto-save failed:', e)
     }
@@ -521,9 +570,12 @@ export function useCrawler() {
     loadPages,
     exportResults,
     loadFromFile,
+    loadFromAppStorage,
     saveToFile,
     startAutoSave,
     stopAutoSave,
+    getSavedCrawls,
+    deleteSavedCrawl,
     getPageByUrl,
     getPagesByStatus,
     getPagesByFileType

@@ -1,12 +1,14 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 /**
  * Composable for managing crawl data as JSON files
- * Handles auto-save, import/export, and resume functionality
+ * Stores crawls in app's own folder via localStorage registry
+ * When converted to Electron, this registry maps to actual file system
  */
 export function useJsonStorage() {
   const currentFile = ref(null)
   const lastSaveTime = ref(null)
+  const REGISTRY_KEY = 'crawl-registry' // Stores list of all crawls
 
   /**
    * Generate filename from domain and timestamp
@@ -114,28 +116,108 @@ export function useJsonStorage() {
   }
 
   /**
-   * List all stored crawls in localStorage
+   * Get the crawl registry (list of all saved crawls)
    */
-  function listStoredCrawls() {
+  function getRegistry() {
     try {
-      const crawls = []
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key.startsWith('crawl-')) {
-          const data = JSON.parse(localStorage.getItem(key))
-          crawls.push({
-            domain: data.crawlState?.baseDomain,
-            fileName: key.replace('crawl-', ''),
-            pageCount: data.pages?.length || 0,
-            savedAt: data.exportedAt,
-            key
-          })
-        }
-      }
-      return crawls
+      const registry = localStorage.getItem(REGISTRY_KEY)
+      return registry ? JSON.parse(registry) : []
     } catch (error) {
-      console.error('Error listing stored crawls:', error)
+      console.error('Error reading crawl registry:', error)
       return []
+    }
+  }
+
+  /**
+   * Add a crawl to the registry
+   */
+  function addToRegistry(id, metadata) {
+    try {
+      const registry = getRegistry()
+      // Remove if already exists
+      const filtered = registry.filter(c => c.id !== id)
+      // Add new entry at the beginning (most recent first)
+      const updated = [
+        {
+          id,
+          domain: metadata.domain,
+          fileName: metadata.fileName,
+          pageCount: metadata.pageCount || 0,
+          savedAt: metadata.savedAt || new Date().toISOString(),
+          rootUrl: metadata.rootUrl
+        },
+        ...filtered
+      ]
+      localStorage.setItem(REGISTRY_KEY, JSON.stringify(updated))
+      return true
+    } catch (error) {
+      console.error('Error adding to crawl registry:', error)
+      return false
+    }
+  }
+
+  /**
+   * Remove a crawl from the registry
+   */
+  function removeFromRegistry(id) {
+    try {
+      const registry = getRegistry()
+      const updated = registry.filter(c => c.id !== id)
+      localStorage.setItem(REGISTRY_KEY, JSON.stringify(updated))
+      // Also remove the crawl data itself
+      localStorage.removeItem(`crawl-data-${id}`)
+      return true
+    } catch (error) {
+      console.error('Error removing from crawl registry:', error)
+      return false
+    }
+  }
+
+  /**
+   * List all saved crawls from registry
+   */
+  function listSavedCrawls() {
+    return getRegistry()
+  }
+
+  /**
+   * Save crawl to app storage (not just localStorage, but registered)
+   */
+  function saveCrawlToAppStorage(data) {
+    try {
+      const domain = data.crawlState?.baseDomain || 'unknown'
+      const id = `${domain}-${Date.now()}`
+      const fileName = generateFileName(domain)
+
+      // Store the actual crawl data
+      localStorage.setItem(`crawl-data-${id}`, JSON.stringify(data))
+
+      // Add to registry
+      addToRegistry(id, {
+        domain,
+        fileName,
+        pageCount: data.pages?.length || 0,
+        rootUrl: data.crawlState?.rootUrl
+      })
+
+      lastSaveTime.value = new Date()
+      return { success: true, id, fileName }
+    } catch (error) {
+      console.error('Error saving crawl to app storage:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  /**
+   * Load a crawl from app storage by ID
+   */
+  function loadCrawlFromAppStorage(id) {
+    try {
+      const data = localStorage.getItem(`crawl-data-${id}`)
+      return data ? JSON.parse(data) : null
+    } catch (error) {
+      console.error('Error loading crawl from app storage:', error)
+      return null
     }
   }
 
@@ -148,6 +230,10 @@ export function useJsonStorage() {
     loadFromStorage,
     loadFromFile,
     clearStorage,
-    listStoredCrawls
+    listSavedCrawls,
+    saveCrawlToAppStorage,
+    loadCrawlFromAppStorage,
+    removeFromRegistry,
+    getRegistry
   }
 }

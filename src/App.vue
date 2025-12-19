@@ -34,6 +34,16 @@
           <p class="empty-subtitle">Crawl websites locally and analyze their structure</p>
           <p class="empty-instruction">Enter a website URL above to start crawling</p>
         </div>
+
+        <div class="previous-section">
+          <PreviousCrawls
+            :saved-crawls="savedCrawls"
+            :is-loading="false"
+            @load="handleLoadSavedCrawl"
+            @delete="handleDeleteSavedCrawl"
+            @clear-all="handleClearAllCrawls"
+          />
+        </div>
       </div>
 
       <div v-else class="layout-grid">
@@ -219,6 +229,7 @@ import ResultsStats from './components/ResultsStats.vue'
 import ResultsTable from './components/ResultsTable.vue'
 import PageDetailModal from './components/PageDetailModal.vue'
 import LogViewer from './components/LogViewer.vue'
+import PreviousCrawls from './components/PreviousCrawls.vue'
 
 export default {
   name: 'App',
@@ -227,7 +238,8 @@ export default {
     ResultsStats,
     ResultsTable,
     PageDetailModal,
-    LogViewer
+    LogViewer,
+    PreviousCrawls
   },
   setup() {
     const crawler = useCrawler()
@@ -239,6 +251,7 @@ export default {
 
     const statusCounts = computed(() => crawler.statusCounts)
     const fileTypeCounts = computed(() => crawler.fileTypeCounts)
+    const savedCrawls = computed(() => crawler.getSavedCrawls())
 
     const statusCodeList = computed(() => {
       const codes = new Set()
@@ -421,6 +434,40 @@ export default {
       input.click()
     }
 
+    async function handleLoadSavedCrawl(crawlId) {
+      try {
+        const result = await crawler.loadFromAppStorage(crawlId)
+        if (result.success) {
+          error.value = null
+        } else {
+          error.value = 'Failed to load crawl: ' + result.error
+        }
+      } catch (e) {
+        error.value = 'Failed to load crawl: ' + e.message
+      }
+    }
+
+    function handleDeleteSavedCrawl(crawlId) {
+      try {
+        crawler.deleteSavedCrawl(crawlId)
+        error.value = null
+      } catch (e) {
+        error.value = 'Failed to delete crawl: ' + e.message
+      }
+    }
+
+    function handleClearAllCrawls() {
+      try {
+        const crawls = crawler.getSavedCrawls()
+        crawls.forEach(crawl => {
+          crawler.deleteSavedCrawl(crawl.id)
+        })
+        error.value = null
+      } catch (e) {
+        error.value = 'Failed to clear crawls: ' + e.message
+      }
+    }
+
     function handleNavigateToPage(url) {
       selectedPage.value = crawler.pages.value.find(p => p.url === url)
     }
@@ -442,6 +489,7 @@ export default {
       activeTab,
       statusCounts,
       fileTypeCounts,
+      savedCrawls,
       statusCodeList,
       getStatusCount,
       crawlState: crawler.crawlState,
@@ -465,6 +513,9 @@ export default {
       handleExport,
       handleImport,
       triggerFileInput,
+      handleLoadSavedCrawl,
+      handleDeleteSavedCrawl,
+      handleClearAllCrawls,
       handleNavigateToPage,
       clearError
     }
@@ -973,17 +1024,27 @@ export default {
 .empty-state {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background: white;
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
 .empty-content {
   text-align: center;
   width: 100%;
   max-width: 900px;
+  margin: auto;
+  padding: 2rem 1.5rem;
+}
+
+.previous-section {
+  border-top: 1px solid #e8e8e8;
+  padding: 1.5rem;
+  background: #fafbfc;
+  max-height: 500px;
+  overflow-y: auto;
 }
 
 .empty-content h2 {
