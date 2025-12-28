@@ -1,3 +1,0 @@
-- You should be able to manually save progress. It should also save on stop and pause
-- The app should be responsive to the window and have scroll components rather than scrolling the whole window
-- You should be able to export links filtered by resopnse code (e.g. a CSV of 5xx errors)

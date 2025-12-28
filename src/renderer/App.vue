@@ -174,14 +174,26 @@
           <!-- Results Tab -->
           <div v-if="activeTab === 'results'" class="tab-content">
             <!-- Filter Section -->
-            <div v-if="statusFilter" class="filter-section">
+            <div v-if="statusFilter || externalFilter !== null" class="filter-section">
               <div class="filter-header">
-                <span class="filter-label">Filtering by Status:</span>
+                <span class="filter-label">
+                  Filtering by:
+                  <span v-if="statusFilter">Status {{ statusFilter }}</span>
+                  <span v-if="statusFilter && externalFilter !== null"> + </span>
+                  <span v-if="externalFilter !== null">{{ externalFilter ? 'External' : 'Internal' }} Links</span>
+                </span>
                 <button
-                  @click="statusFilter = null"
+                  v-if="filteredPages.length > 0"
+                  @click="handleExportFiltered"
+                  class="filter-btn export-btn"
+                >
+                  ↓ Export Filtered ({{ filteredPages.length }})
+                </button>
+                <button
+                  @click="handleClearFilters"
                   class="filter-btn clear-btn"
                 >
-                  Clear Filter ({{ statusFilter }})
+                  Clear Filters
                 </button>
               </div>
             </div>
@@ -509,6 +521,32 @@ export default {
       selectedPage.value = crawler.pages.value.find(p => p.url === url)
     }
 
+    async function handleExportFiltered() {
+      try {
+        let filterDesc = ''
+        if (statusFilter.value) {
+          filterDesc += statusFilter.value
+        }
+        if (externalFilter.value !== null) {
+          if (filterDesc) filterDesc += '-'
+          filterDesc += externalFilter.value ? 'external' : 'internal'
+        }
+        const result = await crawler.exportFilteredResults(filteredPages.value, filterDesc)
+        if (result.success) {
+          error.value = null
+        } else {
+          error.value = 'Export failed: ' + result.error
+        }
+      } catch (e) {
+        error.value = 'Export failed: ' + e.message
+      }
+    }
+
+    function handleClearFilters() {
+      statusFilter.value = null
+      externalFilter.value = null
+    }
+
     function clearError() {
       error.value = null
     }
@@ -565,6 +603,8 @@ export default {
       handleDeleteSavedCrawl,
       handleClearAllCrawls,
       handleNavigateToPage,
+      handleExportFiltered,
+      handleClearFilters,
       clearError
     }
   }
@@ -1204,6 +1244,18 @@ export default {
 
 .filter-btn.clear-btn:hover {
   background: #ffeaea;
+}
+
+.filter-btn.export-btn {
+  background: #3498db;
+  border-color: #2980b9;
+  color: white;
+  font-weight: 700;
+}
+
+.filter-btn.export-btn:hover {
+  background: #2980b9;
+  border-color: #1f618d;
 }
 
 /* Button styles */

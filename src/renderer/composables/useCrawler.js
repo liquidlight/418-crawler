@@ -3,6 +3,7 @@ import { Crawler } from '../services/crawler.js'
 import { useDatabase } from './useDatabase.js'
 import { useJsonStorage } from './useJsonStorage.js'
 import { normalizeUrl } from '../utils/url.js'
+import { exportPagesToCSV, generateCSVFileName } from '../utils/csvExport.js'
 
 const DEFAULT_CRAWL_STATE = {
   isActive: false,
@@ -409,6 +410,22 @@ export function useCrawler() {
   }
 
   /**
+   * Export filtered pages as CSV
+   */
+  function exportFilteredResults(filteredPages, filterDescription = '') {
+    try {
+      const domain = crawlState.value.baseDomain || 'unknown'
+      const fileName = generateCSVFileName(domain, filterDescription)
+      const result = exportPagesToCSV(filteredPages, fileName)
+      return result
+    } catch (e) {
+      error.value = e.message
+      console.error('Failed to export filtered results:', e)
+      return { success: false, error: e.message }
+    }
+  }
+
+  /**
    * Handle progress updates
    */
   async function handleProgress(state) {
@@ -611,6 +628,7 @@ export function useCrawler() {
     loadFromFile,
     loadFromAppStorage,
     saveToFile,
+    exportFilteredResults,
     startAutoSave,
     stopAutoSave,
     getSavedCrawls,
