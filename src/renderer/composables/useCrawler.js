@@ -186,6 +186,7 @@ export function useCrawler() {
       crawlerInstance.pause()
       crawlState.value.isPaused = true
       await db.saveCrawlState(crawlerInstance.getSaveableState())
+      await saveProgress()
     }
   }
 
@@ -211,6 +212,7 @@ export function useCrawler() {
       // We don't manually set isActive=false here, we let handleProgress do it
       // masking the actual winding-down state of the crawler
       await db.saveCrawlState(crawlerInstance.getSaveableState())
+      await saveProgress()
     }
   }
 
@@ -295,6 +297,20 @@ export function useCrawler() {
     if (autoSaveInterval) {
       clearInterval(autoSaveInterval)
       autoSaveInterval = null
+    }
+  }
+
+  /**
+   * Manually save progress to app storage
+   */
+  async function saveProgress() {
+    try {
+      const data = await db.exportData()
+      const result = jsonStorage.saveCrawlToAppStorage(data, currentCrawlId)
+      return result
+    } catch (e) {
+      console.warn('Save progress failed:', e)
+      return { success: false, error: e.message }
     }
   }
 
@@ -591,6 +607,7 @@ export function useCrawler() {
     resetCrawl,
     loadPages,
     exportResults,
+    saveProgress,
     loadFromFile,
     loadFromAppStorage,
     saveToFile,

@@ -32,6 +32,14 @@
       </button>
 
       <button
+        v-if="isActive || isPaused"
+        @click="$emit('save')"
+        class="btn btn-primary"
+      >
+        💾 Save
+      </button>
+
+      <button
         @click="$emit('export')"
         class="btn btn-info"
       >
@@ -57,7 +65,7 @@ export default {
     isPaused: Boolean,
     isBackoffMaxReached: Boolean
   },
-  emits: ['pause', 'resume', 'stop', 'reset', 'export', 'continue-anyway']
+  emits: ['pause', 'resume', 'stop', 'reset', 'save', 'export', 'continue-anyway']
 }
 </script>
 

@@ -57,6 +57,7 @@
             @resume="handleResumeCrawl"
             @stop="handleStopCrawl"
             @reset="handleResetCrawl"
+            @save="handleSaveProgress"
             @export="handleExport"
             @continue-anyway="handleContinueAnyway"
           />
@@ -410,6 +411,19 @@ export default {
       }
     }
 
+    async function handleSaveProgress() {
+      try {
+        const result = await crawler.saveProgress()
+        if (result.success) {
+          error.value = null
+        } else {
+          error.value = 'Save failed: ' + result.error
+        }
+      } catch (e) {
+        error.value = 'Save failed: ' + e.message
+      }
+    }
+
     async function handleResetCrawl() {
       try {
         await crawler.resetCrawl()
@@ -542,6 +556,7 @@ export default {
       handleResumeCrawl,
       handleStopCrawl,
       handleContinueAnyway,
+      handleSaveProgress,
       handleResetCrawl,
       handleExport,
       handleImport,
