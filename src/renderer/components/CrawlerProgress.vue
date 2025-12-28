@@ -7,6 +7,23 @@
       </div>
     </div>
 
+    <!-- Backoff notification section -->
+    <div v-if="state.backoffState?.isInBackoff" class="backoff-section" :class="{ 'max-reached': state.backoffState.maxBackoffReached }">
+      <div class="backoff-icon">⚠️</div>
+      <div class="backoff-content">
+        <h4>Server Overload Detected</h4>
+        <p v-if="!state.backoffState.maxBackoffReached">
+          Detected {{ state.backoffState.attemptCount === 1 ? '5+' : 'continued' }}
+          timeouts. Automatically retrying in <strong>{{ backoffCountdown }}s</strong>
+          (Attempt {{ state.backoffState.attemptCount }}/3)
+        </p>
+        <p v-else class="backoff-max-reached">
+          Server consistently overloaded after 3 automatic retry attempts.
+          Please check server status or adjust crawl rate.
+        </p>
+      </div>
+    </div>
+
     <div class="stats-grid">
       <div class="stat">
         <span class="label">Pages Found</span>
@@ -82,7 +99,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { formatTime } from '../utils/timeFormatting.js'
 import { truncateUrl } from '../utils/textFormatting.js'
 
@@ -94,7 +111,13 @@ export default {
     queueUrls: Array
   },
   setup(props) {
+    const backoffCountdown = ref(0)
+
     const statusColor = computed(() => {
+      // Check for backoff state first
+      if (props.state.backoffState?.isInBackoff) {
+        return props.state.backoffState.maxBackoffReached ? 'danger' : 'warning'
+      }
       if (props.state.isActive && props.state.isPaused) return 'warning'
       if (props.state.isActive) return 'info'
       if (props.state.stats.errors > 0) return 'danger'
@@ -103,11 +126,39 @@ export default {
     })
 
     const statusText = computed(() => {
+      // Check for backoff state first
+      if (props.state.backoffState?.isInBackoff) {
+        if (props.state.backoffState.maxBackoffReached) {
+          return 'Server Overloaded - Manual Action Needed'
+        }
+        return `Server Overloaded (${props.state.backoffState.attemptCount}/3) - Retry in ${backoffCountdown.value}s`
+      }
       if (props.state.isActive && props.state.isPaused) return 'Paused'
       if (props.state.isActive) return 'Crawling...'
       if (props.state.stats.pagesCrawled > 0) return 'Complete'
       return 'Idle'
     })
+
+    // Update countdown timer when in backoff
+    watch(
+      () => props.state.backoffState?.isInBackoff,
+      (isInBackoff) => {
+        if (isInBackoff) {
+          const updateCountdown = () => {
+            if (props.state.backoffState?.backoffEndTime) {
+              const remaining = Math.max(0, Math.ceil((props.state.backoffState.backoffEndTime - Date.now()) / 1000))
+              backoffCountdown.value = remaining
+
+              if (remaining > 0) {
+                setTimeout(updateCountdown, 1000)
+              }
+            }
+          }
+          updateCountdown()
+        }
+      },
+      { immediate: true }
+    )
 
     const progressPercent = computed(() => {
       const total = props.state.stats.pagesFound
@@ -136,6 +187,7 @@ export default {
       pendingCount,
       crawlSpeed,
       queuePreview,
+      backoffCountdown,
       formatTime,
       truncateUrl
     }
@@ -359,5 +411,55 @@ export default {
   color: #666;
   padding-top: 0.35rem;
   border-top: 1px solid #eee;
+}
+
+/* Backoff notification styles */
+.backoff-section {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.backoff-section.max-reached {
+  background: #f8d7da;
+  border-color: #e74c3c;
+}
+
+.backoff-icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.backoff-content h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #856404;
+  font-weight: 700;
+}
+
+.backoff-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #856404;
+  line-height: 1.4;
+}
+
+.backoff-max-reached {
+  color: #721c24 !important;
+  font-weight: 600;
+}
+
+.backoff-section.max-reached .backoff-content h4 {
+  color: #721c24;
+}
+
+.backoff-section.max-reached .backoff-content p {
+  color: #721c24;
 }
 </style>

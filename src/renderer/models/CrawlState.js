@@ -21,6 +21,16 @@ export class CrawlState {
       errors: options.stats?.errors || 0,
       ...options.stats
     }
+
+    this.backoffState = options.backoffState || {
+      level: 0,
+      attemptCount: 0,
+      isInBackoff: false,
+      backoffEndTime: null,
+      duration: null,
+      reason: null,
+      maxBackoffReached: false
+    }
   }
 
   /**
@@ -50,7 +60,8 @@ export class CrawlState {
       startTime: this.startTime,
       pauseTime: this.pauseTime,
       totalTime: this.totalTime,
-      stats: this.stats
+      stats: this.stats,
+      backoffState: this.backoffState
     }
   }
 

@@ -3,6 +3,7 @@ import { parsePage } from './parser.js'
 import { normalizeUrl, isSameDomain, extractDomain } from '../utils/url.js'
 import { CRAWLER_DEFAULTS } from '../utils/constants.js'
 import { CrawlState } from '../models/CrawlState.js'
+import { BackoffManager } from './BackoffManager.js'
 
 /**
  * Main Crawler class - implements BFS crawling with concurrent fetching
@@ -38,6 +39,17 @@ export class Crawler {
     this.onPageProcessed = options.onPageProcessed || (() => {})
     this.onError = options.onError || (() => {})
     this.onComplete = options.onComplete || (() => {})
+
+    // Initialize backoff manager
+    this.backoffManager = new BackoffManager({
+      enabled: options.enableBackoff !== false,
+      timeoutThreshold: options.backoffTimeoutThreshold || CRAWLER_DEFAULTS.BACKOFF_TIMEOUT_THRESHOLD || 5,
+      windowDuration: options.backoffWindowDuration || CRAWLER_DEFAULTS.BACKOFF_WINDOW_DURATION || 30000,
+      backoffLevels: options.backoffLevels || CRAWLER_DEFAULTS.BACKOFF_LEVELS || [30000, 60000, 120000],
+      onBackoffStart: (info) => this.handleBackoffStart(info),
+      onBackoffEnd: () => this.handleBackoffEnd(),
+      onUserNotificationNeeded: (info) => this.handleUserNotification(info)
+    })
 
     // Initialize queue with root URL
     this.state.addToQueue(this.rootUrl, 0)
@@ -192,6 +204,17 @@ export class Crawler {
       // Check if stopped during fetch
       if (!this.state.isActive) {
         return
+      }
+
+      // Track timeouts for backoff detection (internal links only)
+      const isTimeout = response.status === -1 && /timeout/i.test(response.error || '')
+      const isInternal = isSameDomain(url, this.rootUrl, this.baseDomain)
+
+      if (isTimeout) {
+        this.backoffManager.recordTimeout(url, isInternal)
+      } else if (response.ok) {
+        // Track successful fetches to detect server recovery
+        this.backoffManager.recordSuccess(url, isInternal)
       }
 
       // Parse the page
@@ -424,6 +447,7 @@ export class Crawler {
    * Resets the crawler state
    */
   reset() {
+    this.backoffManager.reset()
     this.state = new CrawlState({
       rootUrl: this.rootUrl,
       baseDomain: this.baseDomain
@@ -454,7 +478,9 @@ export class Crawler {
       inProgressCount: this.state.inProgress.size,
       startTime: this.state.startTime,
       totalTime: this.state.totalTime,
-      stats: this.state.stats
+      stats: this.state.stats,
+      backoffState: this.state.backoffState || null,
+      backoffManagerState: this.backoffManager.getState()
     }
   }
 
@@ -495,5 +521,71 @@ export class Crawler {
       isActive: false,
       totalTime: this.state.totalTime
     })
+  }
+
+  /**
+   * Handle backoff start event
+   */
+  handleBackoffStart(info) {
+    console.log('Backoff started:', info)
+
+    // Update state with backoff info
+    this.state.backoffState = {
+      level: info.level,
+      attemptCount: info.attemptCount,
+      isInBackoff: true,
+      backoffEndTime: info.endTime,
+      duration: info.duration,
+      reason: 'timeout-overload'
+    }
+
+    // Pause the crawler
+    this.pause()
+
+    // Emit progress to update UI
+    this.emitProgress()
+  }
+
+  /**
+   * Handle backoff end event
+   */
+  handleBackoffEnd() {
+    console.log('Backoff ended, resuming crawl')
+
+    // Clear backoff state
+    if (this.state.backoffState) {
+      this.state.backoffState.isInBackoff = false
+      this.state.backoffState.backoffEndTime = null
+    }
+
+    // Resume the crawler
+    this.resume()
+
+    // Emit progress to update UI
+    this.emitProgress()
+  }
+
+  /**
+   * Handle user notification needed event (max backoff reached)
+   */
+  handleUserNotification(info) {
+    console.warn('User notification needed:', info)
+
+    // Update state to indicate max backoff reached
+    if (this.state.backoffState) {
+      this.state.backoffState.maxBackoffReached = true
+    }
+
+    // Emit special event through onError callback with notification flag
+    this.onError({
+      type: 'backoff-max-reached',
+      message: info.message,
+      attemptCount: info.attemptCount,
+      requiresUserAction: true
+    })
+
+    // Keep crawler paused until user decides
+    this.pause()
+    this.emitProgress()
   }
 }

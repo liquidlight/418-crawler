@@ -37,6 +37,14 @@
       >
         ↓ Export
       </button>
+
+      <button
+        v-if="isBackoffMaxReached"
+        @click="$emit('continue-anyway')"
+        class="btn btn-override"
+      >
+        ⚠️ Continue Anyway
+      </button>
     </div>
   </div>
 </template>
@@ -46,9 +54,10 @@ export default {
   name: 'CrawlerControls',
   props: {
     isActive: Boolean,
-    isPaused: Boolean
+    isPaused: Boolean,
+    isBackoffMaxReached: Boolean
   },
-  emits: ['pause', 'resume', 'stop', 'reset', 'export']
+  emits: ['pause', 'resume', 'stop', 'reset', 'export', 'continue-anyway']
 }
 </script>
 
@@ -126,5 +135,18 @@ export default {
 .btn-info:hover {
   background: #2980b9;
   transform: translateX(2px);
+}
+
+.btn-override {
+  background: #e74c3c;
+  color: white;
+  border: 2px solid #c0392b;
+  font-weight: 700;
+}
+
+.btn-override:hover {
+  background: #c0392b;
+  transform: translateX(2px);
+  box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
 }
 </style>

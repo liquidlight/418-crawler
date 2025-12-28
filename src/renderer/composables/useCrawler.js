@@ -76,6 +76,10 @@ export function useCrawler() {
     return crawlerInstance ? crawlerInstance.getQueueUrls() : []
   })
 
+  const isBackoffMaxReached = computed(() => {
+    return crawlState.value.backoffState?.maxBackoffReached === true
+  })
+
   function updateCrawlState(state) {
     crawlState.value = {
       isActive: state.isActive || false,
@@ -207,6 +211,16 @@ export function useCrawler() {
       // We don't manually set isActive=false here, we let handleProgress do it
       // masking the actual winding-down state of the crawler
       await db.saveCrawlState(crawlerInstance.getSaveableState())
+    }
+  }
+
+  /**
+   * Continue crawling despite backoff max being reached
+   */
+  async function continueAnyway() {
+    if (crawlerInstance && isBackoffMaxReached.value) {
+      crawlerInstance.backoffManager.cancelBackoff()
+      await resumeCrawl()
     }
   }
 
@@ -565,6 +579,7 @@ export function useCrawler() {
     statusCounts,
     fileTypeCounts,
     queueUrls,
+    isBackoffMaxReached,
 
     // Methods
     initialize,
@@ -572,6 +587,7 @@ export function useCrawler() {
     pauseCrawl,
     resumeCrawl,
     stopCrawl,
+    continueAnyway,
     resetCrawl,
     loadPages,
     exportResults,

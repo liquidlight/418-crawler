@@ -49,12 +49,17 @@
       <div v-else class="layout-grid">
         <!-- Left Sidebar -->
         <aside class="sidebar">
-          <div class="controls-compact">
-            <button v-if="!crawlState.isActive && !crawlState.isPaused" @click="handleStartCrawl" class="btn btn-sm btn-primary">Start</button>
-            <button v-if="crawlState.isActive && !crawlState.isPaused" @click="handlePauseCrawl" class="btn btn-sm btn-warning">Pause</button>
-            <button v-if="crawlState.isPaused" @click="handleResumeCrawl" class="btn btn-sm btn-primary">Resume</button>
-            <button v-if="crawlState.isActive || crawlState.isPaused" @click="handleStopCrawl" class="btn btn-sm btn-danger">Stop</button>
-          </div>
+          <CrawlerControls
+            :is-active="crawlState.isActive"
+            :is-paused="crawlState.isPaused"
+            :is-backoff-max-reached="isBackoffMaxReached"
+            @pause="handlePauseCrawl"
+            @resume="handleResumeCrawl"
+            @stop="handleStopCrawl"
+            @reset="handleResetCrawl"
+            @export="handleExport"
+            @continue-anyway="handleContinueAnyway"
+          />
 
           <!-- Stats Cards -->
           <div class="stats-sidebar">
@@ -234,6 +239,7 @@ import { useCrawler } from './composables/useCrawler.js'
 import { formatTime } from './utils/timeFormatting.js'
 import { groupStatusCodesByHundreds } from './utils/statusBadges.js'
 import CrawlerInput from './components/CrawlerInput.vue'
+import CrawlerControls from './components/CrawlerControls.vue'
 import ResultsStats from './components/ResultsStats.vue'
 import ResultsTable from './components/ResultsTable.vue'
 import PageDetailModal from './components/PageDetailModal.vue'
@@ -245,6 +251,7 @@ export default {
   name: 'App',
   components: {
     CrawlerInput,
+    CrawlerControls,
     ResultsStats,
     ResultsTable,
     PageDetailModal,
@@ -395,6 +402,14 @@ export default {
       }
     }
 
+    async function handleContinueAnyway() {
+      try {
+        await crawler.continueAnyway()
+      } catch (e) {
+        error.value = e.message
+      }
+    }
+
     async function handleResetCrawl() {
       try {
         await crawler.resetCrawl()
@@ -520,11 +535,13 @@ export default {
       crawlSpeed,
       statusLabel,
       statusColorClass,
+      isBackoffMaxReached: crawler.isBackoffMaxReached,
       formatTime,
       handleStartCrawl,
       handlePauseCrawl,
       handleResumeCrawl,
       handleStopCrawl,
+      handleContinueAnyway,
       handleResetCrawl,
       handleExport,
       handleImport,
