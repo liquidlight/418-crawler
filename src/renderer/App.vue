@@ -578,6 +578,7 @@ export default {
 <style scoped>
 .app {
   height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   background: #fafbfc;
@@ -592,6 +593,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -626,8 +628,8 @@ export default {
   border-bottom: 1px solid #e0e4e8;
   padding: 0.5rem 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
 }
-
 
 .error-banner {
   background: #ffeaea;
@@ -638,6 +640,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .btn-close {
@@ -656,6 +659,7 @@ export default {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  width: 100%;
 }
 
 .layout-grid {
@@ -665,6 +669,7 @@ export default {
   flex: 1;
   min-height: 0;
   width: 100%;
+  height: 100%;
 }
 
 .sidebar {
@@ -1059,8 +1064,9 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 600px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .queue-item-full {
@@ -1101,6 +1107,7 @@ export default {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   min-height: 0;
+  height: 100%;
 }
 
 .empty-content {
