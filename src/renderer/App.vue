@@ -9,17 +9,26 @@
         <span v-if="crawlState.rootUrl" class="status-text">{{ statusLabel }}</span>
         <button @click="triggerFileInput" class="btn btn-secondary">Import</button>
         <button v-if="crawlState.rootUrl" @click="handleExport" class="btn btn-primary">Export</button>
+        <button v-if="crawlState.rootUrl && (crawlState.isActive || crawlState.isPaused)" @click="handleSaveProgress" class="btn btn-success" title="Save current progress">💾 Save</button>
         <button v-if="crawlState.rootUrl" @click="handleResetCrawl" class="btn btn-secondary">Reset</button>
       </div>
     </header>
 
     <!-- URL Input Section at Top -->
     <div class="top-section">
-      <CrawlerInput
-        :url="crawlState.rootUrl"
-        :disabled="crawlState.isActive"
-        @crawl="handleStartCrawl"
-      />
+      <div class="top-content">
+        <CrawlerInput
+          :url="crawlState.rootUrl"
+          :disabled="crawlState.isActive"
+          @crawl="handleStartCrawl"
+        />
+        <div v-if="crawlState.rootUrl" class="control-buttons">
+          <button v-if="!crawlState.isActive && !crawlState.isPaused" @click="handleStartCrawl" class="btn btn-sm btn-primary">▶ Start</button>
+          <button v-if="crawlState.isActive && !crawlState.isPaused" @click="handlePauseCrawl" class="btn btn-sm btn-warning">⏸ Pause</button>
+          <button v-if="crawlState.isPaused" @click="handleResumeCrawl" class="btn btn-sm btn-primary">▶ Resume</button>
+          <button v-if="crawlState.isActive || crawlState.isPaused" @click="handleStopCrawl" class="btn btn-sm btn-danger">⏹ Stop</button>
+        </div>
+      </div>
     </div>
 
     <div v-if="error" class="error-banner">
@@ -49,19 +58,6 @@
       <div v-else class="layout-grid">
         <!-- Left Sidebar -->
         <aside class="sidebar">
-          <CrawlerControls
-            :is-active="crawlState.isActive"
-            :is-paused="crawlState.isPaused"
-            :is-backoff-max-reached="isBackoffMaxReached"
-            @pause="handlePauseCrawl"
-            @resume="handleResumeCrawl"
-            @stop="handleStopCrawl"
-            @reset="handleResetCrawl"
-            @save="handleSaveProgress"
-            @export="handleExport"
-            @continue-anyway="handleContinueAnyway"
-          />
-
           <!-- Stats Cards -->
           <div class="stats-sidebar">
             <div class="stat-card">
@@ -99,7 +95,7 @@
               <button
                 v-for="code in statusCodeList"
                 :key="code"
-                @click="statusFilter = statusFilter === code ? null : code"
+                @click="handleStatusFilterClick(code)"
                 :class="{ active: statusFilter === code }"
                 class="status-filter-btn"
               >
@@ -114,7 +110,7 @@
             <div class="external-filters-title">Link Type</div>
             <div class="external-filter-buttons">
               <button
-                @click="externalFilter = externalFilter === false ? null : false"
+                @click="handleLinkTypeFilterClick(false)"
                 :class="{ active: externalFilter === false }"
                 class="external-filter-btn"
               >
@@ -122,7 +118,7 @@
                 <span class="count">({{ internalCount }})</span>
               </button>
               <button
-                @click="externalFilter = externalFilter === true ? null : true"
+                @click="handleLinkTypeFilterClick(true)"
                 :class="{ active: externalFilter === true }"
                 class="external-filter-btn"
               >
@@ -252,7 +248,6 @@ import { useCrawler } from './composables/useCrawler.js'
 import { formatTime } from './utils/timeFormatting.js'
 import { groupStatusCodesByHundreds } from './utils/statusBadges.js'
 import CrawlerInput from './components/CrawlerInput.vue'
-import CrawlerControls from './components/CrawlerControls.vue'
 import ResultsStats from './components/ResultsStats.vue'
 import ResultsTable from './components/ResultsTable.vue'
 import PageDetailModal from './components/PageDetailModal.vue'
@@ -264,7 +259,6 @@ export default {
   name: 'App',
   components: {
     CrawlerInput,
-    CrawlerControls,
     ResultsStats,
     ResultsTable,
     PageDetailModal,
@@ -542,6 +536,16 @@ export default {
       }
     }
 
+    function handleStatusFilterClick(code) {
+      statusFilter.value = statusFilter.value === code ? null : code
+      activeTab.value = 'results'
+    }
+
+    function handleLinkTypeFilterClick(isExternal) {
+      externalFilter.value = externalFilter.value === isExternal ? null : isExternal
+      activeTab.value = 'results'
+    }
+
     function handleClearFilters() {
       statusFilter.value = null
       externalFilter.value = null
@@ -666,8 +670,20 @@ export default {
 .top-section {
   background: white;
   border-bottom: 1px solid #e0e4e8;
-  padding: 0.5rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.top-content {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 0.5rem;
   flex-shrink: 0;
 }
 
@@ -722,12 +738,6 @@ export default {
   gap: 1rem;
   overflow-y: auto;
   min-height: 0;
-}
-
-.controls-compact {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
 }
 
 .stats-sidebar {
@@ -1311,9 +1321,31 @@ export default {
   background: #ffb300;
 }
 
+.btn-success {
+  background: #27ae60;
+  color: white;
+  border-color: #27ae60;
+}
+
+.btn-success:hover {
+  background: #229954;
+}
+
 .btn-sm {
   padding: 0.35rem 0.75rem;
   font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .header-right {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1323,6 +1355,21 @@ export default {
 
   .overview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .top-content {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .control-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .control-buttons .btn {
+    flex: 1;
+    min-width: 80px;
   }
 }
 </style>
