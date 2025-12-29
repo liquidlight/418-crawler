@@ -607,6 +607,8 @@ export default {
       handleDeleteSavedCrawl,
       handleClearAllCrawls,
       handleNavigateToPage,
+      handleStatusFilterClick,
+      handleLinkTypeFilterClick,
       handleExportFiltered,
       handleClearFilters,
       clearError
@@ -678,7 +680,7 @@ export default {
 .top-content {
   display: flex;
   gap: 1rem;
-  align-items: flex-end;
+  align-items: center;
 }
 
 .control-buttons {
