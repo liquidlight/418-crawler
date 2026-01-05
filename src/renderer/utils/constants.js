@@ -18,8 +18,9 @@ export const FILE_TYPES = {
 }
 
 // Proxy URL is injected by Vite from environment variable
-// Falls back to localhost:8080 if not set
-export const PROXY_URL = typeof __PROXY_URL__ !== 'undefined' ? __PROXY_URL__ : 'http://localhost:8080/fetch'
+// Falls back to localhost:8080 if not set (for Electron/local dev)
+// For Netlify: Uses /.netlify/functions/proxy
+export const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:8080/fetch'
 
 export const CRAWLER_STATUS = {
   IDLE: 'idle',

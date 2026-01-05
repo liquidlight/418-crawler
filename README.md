@@ -201,6 +201,60 @@ For now, users should build locally: `npm run build` and open the DMG.
 
 ---
 
+## Web Deployment to Netlify
+
+You can also deploy the app as a web application on Netlify. This allows users to run the crawler in their browser without needing to build locally or use Electron.
+
+### Prerequisites
+
+- GitHub account (or any other Git provider)
+- Netlify account (free tier is fine)
+
+### Deploy in 3 Steps
+
+**1. Push your code to GitHub**
+```bash
+git push origin main
+```
+
+**2. Connect to Netlify**
+- Go to [netlify.com](https://netlify.com)
+- Click "Add new site" → "Import an existing project"
+- Select your GitHub repository
+- Netlify will auto-detect the `netlify.toml` configuration
+- Click "Deploy site"
+
+**3. Access your app**
+```
+https://<your-site-name>.netlify.app
+```
+
+### How It Works
+
+- **Frontend:** Deployed to Netlify's CDN
+- **Proxy:** Uses Netlify serverless functions at `/.netlify/functions/proxy`
+- **Storage:** Uses browser's localStorage (data persists per browser)
+- **No backend required:** Everything runs in the browser or as serverless functions
+
+### Netlify Features Used
+
+- **Build command:** `npm run build:web`
+- **Publish directory:** `dist/`
+- **Serverless functions:** `netlify/functions/proxy.js` handles CORS proxy requests
+
+### Environment Variables
+
+The deployment automatically configures:
+- `VITE_PROXY_URL = /.netlify/functions/proxy`
+
+This tells the app to use the Netlify function instead of localhost:8080.
+
+### Deployment Updates
+
+Every time you push to your main branch, Netlify will automatically rebuild and redeploy the app.
+
+---
+
 ## Future Enhancements (Optional)
 
 - Auto-updates: `npm install -S electron-updater`

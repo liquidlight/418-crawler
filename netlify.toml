@@ -1,0 +1,34 @@
+# Netlify configuration
+[build]
+  command = "npm run build:web"
+  functions = "netlify/functions"
+  publish = "dist"
+
+# Environment variables for web builds
+[context.production]
+  environment = { VITE_PROXY_URL = "/.netlify/functions/proxy" }
+
+[context.deploy-preview]
+  environment = { VITE_PROXY_URL = "/.netlify/functions/proxy" }
+
+[context.branch-deploy]
+  environment = { VITE_PROXY_URL = "/.netlify/functions/proxy" }
+
+# Rewrite /fetch requests to the serverless function
+[[redirects]]
+  from = "/fetch"
+  to = "/.netlify/functions/proxy"
+  status = 200
+  force = true
+
+# Rewrite API calls directly to the function
+[[redirects]]
+  from = "/.netlify/functions/proxy"
+  to = "/.netlify/functions/proxy"
+  status = 200
+
+# SPA fallback - required for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
