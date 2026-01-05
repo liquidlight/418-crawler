@@ -21,12 +21,6 @@
   status = 200
   force = true
 
-# Rewrite API calls directly to the function
-[[redirects]]
-  from = "/.netlify/functions/proxy"
-  to = "/.netlify/functions/proxy"
-  status = 200
-
 # SPA fallback - required for client-side routing
 [[redirects]]
   from = "/*"
