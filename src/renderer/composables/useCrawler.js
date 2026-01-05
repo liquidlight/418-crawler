@@ -36,6 +36,7 @@ export function useCrawler() {
   const error = ref(null)
   const isInitialized = ref(false)
   const isStopping = ref(false)
+  const savedCrawlsList = ref([])
 
   // Computed properties
   const statusCounts = computed(() => {
@@ -103,6 +104,9 @@ export function useCrawler() {
     try {
       await db.init()
       isInitialized.value = true
+
+      // Load saved crawls list
+      refreshSavedCrawlsList()
 
       // Try to load previous crawl state
       const savedState = await db.getCrawlState()
@@ -308,6 +312,9 @@ export function useCrawler() {
     try {
       const data = await db.exportData()
       const result = jsonStorage.saveCrawlToAppStorage(data, currentCrawlId)
+      if (result.success) {
+        refreshSavedCrawlsList()
+      }
       return result
     } catch (e) {
       console.warn('Save progress failed:', e)
@@ -381,17 +388,28 @@ export function useCrawler() {
   }
 
   /**
+   * Refresh the saved crawls list from storage
+   */
+  function refreshSavedCrawlsList() {
+    savedCrawlsList.value = jsonStorage.listSavedCrawls()
+  }
+
+  /**
    * Get list of saved crawls from registry
    */
   function getSavedCrawls() {
-    return jsonStorage.listSavedCrawls()
+    return savedCrawlsList.value
   }
 
   /**
    * Delete a crawl from app storage
    */
   function deleteSavedCrawl(crawlId) {
-    return jsonStorage.removeFromRegistry(crawlId)
+    const result = jsonStorage.removeFromRegistry(crawlId)
+    if (result) {
+      refreshSavedCrawlsList()
+    }
+    return result
   }
 
   /**
