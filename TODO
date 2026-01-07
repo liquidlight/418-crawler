@@ -1,0 +1,4 @@
+- Filter results (e.g. search for "linkedin")
+- Deleting should refresh the UI
+- Add a "in progress" indicator (in the case where something is hanging but it's still working)
+-

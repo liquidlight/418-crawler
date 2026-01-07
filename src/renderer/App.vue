@@ -170,27 +170,42 @@
           <!-- Results Tab -->
           <div v-if="activeTab === 'results'" class="tab-content">
             <!-- Filter Section -->
-            <div v-if="statusFilter || externalFilter !== null" class="filter-section">
-              <div class="filter-header">
-                <span class="filter-label">
-                  Filtering by:
-                  <span v-if="statusFilter">Status {{ statusFilter }}</span>
-                  <span v-if="statusFilter && externalFilter !== null"> + </span>
-                  <span v-if="externalFilter !== null">{{ externalFilter ? 'External' : 'Internal' }} Links</span>
-                </span>
-                <button
-                  v-if="filteredPages.length > 0"
-                  @click="handleExportFiltered"
-                  class="filter-btn export-btn"
-                >
-                  ↓ Export Filtered ({{ filteredPages.length }})
-                </button>
-                <button
-                  @click="handleClearFilters"
-                  class="filter-btn clear-btn"
-                >
-                  Clear Filters
-                </button>
+            <div class="filter-section">
+              <!-- Keyword Filter Input -->
+              <div class="keyword-filter">
+                <input
+                  v-model="keywordFilter"
+                  type="text"
+                  placeholder="Filter by keyword (e.g., linkedin)"
+                  class="keyword-input"
+                />
+              </div>
+
+              <!-- Active Filters Display -->
+              <div v-if="statusFilter || externalFilter !== null || keywordFilter" class="active-filters">
+                <div class="filter-header">
+                  <span class="filter-label">
+                    Filtering by:
+                    <span v-if="statusFilter">Status {{ statusFilter }}</span>
+                    <span v-if="statusFilter && (externalFilter !== null || keywordFilter)"> + </span>
+                    <span v-if="externalFilter !== null">{{ externalFilter ? 'External' : 'Internal' }} Links</span>
+                    <span v-if="(statusFilter || externalFilter !== null) && keywordFilter"> + </span>
+                    <span v-if="keywordFilter">"{{ keywordFilter }}"</span>
+                  </span>
+                  <button
+                    v-if="filteredPages.length > 0"
+                    @click="handleExportFiltered"
+                    class="filter-btn export-btn"
+                  >
+                    ↓ Export Filtered ({{ filteredPages.length }})
+                  </button>
+                  <button
+                    @click="handleClearFilters"
+                    class="filter-btn clear-btn"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -273,6 +288,7 @@ export default {
     const showErrorModal = ref(false)
     const statusFilter = ref(null)
     const externalFilter = ref(null) // null = all, true = external only, false = internal only
+    const keywordFilter = ref('')
     const activeTab = ref('overview')
 
     const savedCrawls = computed(() => crawler.getSavedCrawls())
@@ -320,6 +336,12 @@ export default {
       // Apply external/internal filter
       if (externalFilter.value !== null) {
         result = result.filter(p => p.isExternal === externalFilter.value)
+      }
+
+      // Apply keyword filter
+      if (keywordFilter.value) {
+        const keyword = keywordFilter.value.toLowerCase()
+        result = result.filter(p => p.url.toLowerCase().includes(keyword))
       }
 
       return result
@@ -549,6 +571,7 @@ export default {
     function handleClearFilters() {
       statusFilter.value = null
       externalFilter.value = null
+      keywordFilter.value = ''
     }
 
     function clearError() {
@@ -575,6 +598,7 @@ export default {
       showErrorModal,
       statusFilter,
       externalFilter,
+      keywordFilter,
       activeTab,
       savedCrawls,
       statusCodeList,
@@ -1204,6 +1228,36 @@ export default {
   border-bottom: 1px solid #e1e4e8;
   margin-bottom: 1rem;
   border-radius: 4px;
+}
+
+.keyword-filter {
+  margin-bottom: 1rem;
+}
+
+.keyword-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #d1d5da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #24292e;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.keyword-input:focus {
+  outline: none;
+  border-color: #0366d6;
+  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+}
+
+.keyword-input::placeholder {
+  color: #6a737d;
+}
+
+.active-filters {
+  display: block;
 }
 
 .filter-header {
