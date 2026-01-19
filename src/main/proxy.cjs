@@ -108,11 +108,21 @@ app.post('/fetch', async (req, res) => {
       url: response.url // Include final URL in case of redirects
     })
   } catch (error) {
-    console.error('Fetch error:', error.message)
+    // Extract error details from various error types
+    let errorMessage = error.message || 'Unknown error'
+    if (!errorMessage && error.toString) {
+      errorMessage = error.toString()
+    }
+
+    console.error('Fetch error:', {
+      message: errorMessage,
+      name: error?.name,
+      code: error?.code,
+      type: error?.constructor?.name || typeof error
+    })
 
     // Handle specific error types
     let statusCode = 500
-    let errorMessage = error.message
 
     if (error.code === 'ENOTFOUND') {
       statusCode = 400

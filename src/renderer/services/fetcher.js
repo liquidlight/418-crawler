@@ -65,7 +65,23 @@ export async function fetchUrl(url, options = {}) {
     }
   } catch (error) {
     const responseTime = Date.now() - startTime
-    console.error(`Fetch error for ${url}:`, error)
+
+    // Extract error details from various error types
+    let errorDetails = 'Unknown error'
+    if (error instanceof Error) {
+      errorDetails = error.message
+    } else if (typeof error === 'object' && error !== null) {
+      errorDetails = error.toString()
+    } else if (typeof error === 'string') {
+      errorDetails = error
+    }
+
+    console.error(`Fetch error for ${url}:`, {
+      message: errorDetails,
+      name: error?.name,
+      code: error?.code,
+      type: error?.constructor?.name || typeof error
+    })
 
     return {
       ok: false,
@@ -73,7 +89,7 @@ export async function fetchUrl(url, options = {}) {
       statusText: 'Error',
       headers: {},
       data: '',
-      error: error.message || 'Unknown error',
+      error: errorDetails,
       responseTime,
       url
     }
@@ -116,7 +132,17 @@ export async function fetchWithRetry(url, options = {}) {
 
       return response
     } catch (error) {
-      lastError = error.message
+      // Extract error message from various error types
+      if (error instanceof Error) {
+        lastError = error.message
+      } else if (typeof error === 'object' && error !== null) {
+        lastError = error.toString()
+      } else if (typeof error === 'string') {
+        lastError = error
+      } else {
+        lastError = 'Unknown error'
+      }
+
       if (attempt < maxRetries) {
         // Wait before retrying
         await new Promise(resolve => setTimeout(resolve, retryDelay))
