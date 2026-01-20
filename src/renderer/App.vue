@@ -6,13 +6,11 @@
         <h1>418 🫖</h1>
       </div>
       <div class="header-right">
-        <span v-if="crawlState.rootUrl" class="status-text">
-          {{ statusLabel }}
-          <ProgressBars
-            v-if="crawlState.isActive"
-            :pageProgress="crawlState.pageProgress"
-          />
-        </span>
+        <ProgressBars
+          v-if="crawlState.isActive && crawlState.rootUrl"
+          :pageProgress="crawlState.pageProgress"
+        />
+        <span v-if="crawlState.rootUrl" class="status-text">{{ statusLabel }}</span>
         <button @click="triggerFileInput" class="btn btn-secondary">Import</button>
         <button v-if="crawlState.rootUrl" @click="handleExport" class="btn btn-primary">Export</button>
         <button v-if="crawlState.rootUrl && (crawlState.isActive || crawlState.isPaused)" @click="handleSaveProgress" class="btn btn-success" title="Save current progress">💾 Save</button>

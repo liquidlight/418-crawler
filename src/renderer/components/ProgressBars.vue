@@ -54,8 +54,7 @@ export default {
   display: flex;
   gap: 4px;
   height: 20px;
-  align-items: flex-end;
-  margin-left: 0.75rem;
+  align-items: center;
 }
 
 .progress-bar-vertical {
