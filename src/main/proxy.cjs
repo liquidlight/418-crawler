@@ -78,10 +78,28 @@ app.post('/fetch', async (req, res) => {
 
     // Perform the fetch with timeout
     const fetchPromise = fetch(url, fetchOptions)
-    const response = await Promise.race([fetchPromise, timeoutPromise])
+    let response
+    try {
+      response = await Promise.race([fetchPromise, timeoutPromise])
+    } catch (fetchError) {
+      // Re-throw with more context if it's a timeout
+      if (fetchError.message.includes('timeout')) {
+        const err = new Error(`Request timeout after ${timeout}ms`)
+        err.code = 'ERR_HTTP_REQUEST_TIMEOUT'
+        throw err
+      }
+      throw fetchError
+    }
 
     // Get response body as text
-    const data = await response.text()
+    let data
+    try {
+      data = await response.text()
+    } catch (readError) {
+      console.error('Failed to read response body:', readError.message)
+      // Return the error response without body data
+      data = ''
+    }
 
     // Prepare response headers (exclude problematic ones)
     const headers = {}
@@ -105,9 +123,15 @@ app.post('/fetch', async (req, res) => {
       statusText: response.statusText,
       headers,
       data,
-      url: response.url // Include final URL in case of redirects
+      url: url // Use the original URL, not response.url which may not exist
     })
   } catch (error) {
+    // Check if response has already been sent
+    if (res.headersSent) {
+      console.error('Response already sent, cannot send error response:', error.message)
+      return
+    }
+
     // Extract error details from various error types
     let errorMessage = error.message || 'Unknown error'
     if (!errorMessage && error.toString) {
