@@ -29,6 +29,7 @@ export function useCrawler() {
   let crawlerInstance = null
   let autoSaveInterval = null
   let currentCrawlId = null
+  let processOrder = 0  // Track the order pages are processed
 
   const crawlState = ref({ ...DEFAULT_CRAWL_STATE })
 
@@ -244,6 +245,7 @@ export function useCrawler() {
       currentCrawlId = null
       error.value = null
       isStopping.value = false
+      processOrder = 0  // Reset process order counter
     } catch (e) {
       error.value = e.message
       console.error('Failed to reset crawl:', e)
@@ -505,12 +507,19 @@ export function useCrawler() {
         page.inLinks = existingPage.inLinks
       }
 
+      // Preserve or set processOrder
+      if (existingPage && existingPage.processOrder) {
+        page.processOrder = existingPage.processOrder
+      } else if (!page.processOrder) {
+        page.processOrder = ++processOrder  // Assign order if not already set
+      }
+
       // Save page to database
       await db.savePage(page)
 
       // Add to pages array - use markRaw to prevent circular references in reactivity
       const existingIndex = pages.value.findIndex(p => p.url === page.url)
-      
+
       if (existingIndex >= 0) {
         const updated = [...pages.value]
         updated[existingIndex] = markRaw(page)
@@ -526,7 +535,7 @@ export function useCrawler() {
    */
   async function addDiscoveredUrl(url, depth = 0, isExternal = false) {
     const normalizedUrl = normalizeUrl(url) || url
-    
+
     // Check if URL already exists in pages (by canonical url)
     const exists = pages.value.find(p => p.url === normalizedUrl)
     if (exists) return
@@ -553,7 +562,8 @@ export function useCrawler() {
       isCrawled: false,
       isExternal: isExternal,  // Use the passed isExternal value
       depth,
-      crawledAt: null
+      crawledAt: null,
+      processOrder: ++processOrder  // Track order of discovery
     }
 
     // Save to database so orphaned URL detection can find it

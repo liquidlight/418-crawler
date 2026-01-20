@@ -10,6 +10,12 @@
       <table class="table">
         <thead>
           <tr>
+            <th @click="toggleSort('processOrder')" class="sortable row-col">
+              Row
+              <span v-if="sortBy === 'processOrder'" class="sort-indicator">
+                {{ sortOrder === 'asc' ? '▲' : '▼' }}
+              </span>
+            </th>
             <th @click="toggleSort('statusCode')" class="sortable">
               Status
               <span v-if="sortBy === 'statusCode'" class="sort-indicator">
@@ -41,6 +47,7 @@
             class="table-row"
             :class="{ 'row-pending': !page.isCrawled && !page.isExternal }"
           >
+            <td class="row-cell">{{ page.processOrder || '-' }}</td>
             <td class="status-cell">
               <button v-if="page.isCrawled" :class="getStatusBadgeClass(page.statusCode)" class="badge badge-clickable" @click="$emit('filter-status', page.statusCode)" :title="'Filter by status ' + page.statusCode">
                 {{ page.statusCode }}
@@ -90,8 +97,8 @@ export default {
   },
   emits: ['select-page', 'filter-status'],
   setup(props) {
-    const sortBy = ref('statusCode')
-    const sortOrder = ref('asc')
+    const sortBy = ref('processOrder')
+    const sortOrder = ref('desc')
 
     const sortedPages = computed(() => {
       const sorted = [...props.pages]
@@ -202,6 +209,19 @@ export default {
 
 .table-row:hover {
   background: #fcfcfc;
+}
+
+.row-col {
+  width: 50px;
+}
+
+.row-cell {
+  width: 50px;
+  text-align: right;
+  padding-right: 1rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #999;
 }
 
 .status-cell {
