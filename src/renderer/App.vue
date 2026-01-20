@@ -6,7 +6,13 @@
         <h1>418 🫖</h1>
       </div>
       <div class="header-right">
-        <span v-if="crawlState.rootUrl" class="status-text">{{ statusLabel }}</span>
+        <span v-if="crawlState.rootUrl" class="status-text">
+          {{ statusLabel }}
+          <ProgressBars
+            v-if="crawlState.isActive"
+            :pageProgress="crawlState.pageProgress"
+          />
+        </span>
         <button @click="triggerFileInput" class="btn btn-secondary">Import</button>
         <button v-if="crawlState.rootUrl" @click="handleExport" class="btn btn-primary">Export</button>
         <button v-if="crawlState.rootUrl && (crawlState.isActive || crawlState.isPaused)" @click="handleSaveProgress" class="btn btn-success" title="Save current progress">💾 Save</button>
@@ -269,6 +275,7 @@ import PageDetailModal from './components/PageDetailModal.vue'
 import ErrorDetailsModal from './components/ErrorDetailsModal.vue'
 import LogViewer from './components/LogViewer.vue'
 import PreviousCrawls from './components/PreviousCrawls.vue'
+import ProgressBars from './components/ProgressBars.vue'
 
 export default {
   name: 'App',
@@ -279,7 +286,8 @@ export default {
     PageDetailModal,
     ErrorDetailsModal,
     LogViewer,
-    PreviousCrawls
+    PreviousCrawls,
+    ProgressBars
   },
   setup() {
     const crawler = useCrawler()

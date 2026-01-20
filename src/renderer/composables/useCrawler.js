@@ -20,7 +20,8 @@ const DEFAULT_CRAWL_STATE = {
     pagesCrawled: 0,
     queueSize: 0,
     errors: 0
-  }
+  },
+  pageProgress: []
 }
 
 export function useCrawler() {
@@ -94,7 +95,8 @@ export function useCrawler() {
       inProgressCount: state.inProgressCount || 0,
       startTime: state.startTime || 0,
       totalTime: state.totalTime || 0,
-      stats: { ...state.stats }
+      stats: { ...state.stats },
+      pageProgress: state.pageProgress || []
     }
   }
 

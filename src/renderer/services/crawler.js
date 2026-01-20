@@ -51,6 +51,9 @@ export class Crawler {
       onUserNotificationNeeded: (info) => this.handleUserNotification(info)
     })
 
+    // Initialize page progress tracking (ephemeral UI state)
+    this.pageProgress = new Map()
+
     // Initialize queue with root URL
     this.state.addToQueue(this.rootUrl, 0)
   }
@@ -190,6 +193,8 @@ export class Crawler {
     try {
       this.state.markVisited(url)
       this.state.markInProgress(url)
+      // Stage 1 (25%): URL queued/about to be crawled
+      this.pageProgress.set(url, { stage: 1, timestamp: Date.now() })
 
       // Fetch the page
       const response = await fetchWithRetry(url, {
@@ -200,6 +205,9 @@ export class Crawler {
       if (!response) {
         throw new Error('No response received from fetcher')
       }
+
+      // Stage 2 (50%): Page fetch complete
+      this.pageProgress.set(url, { stage: 2, timestamp: Date.now() })
 
       // Check if stopped during fetch
       if (!this.state.isActive) {
@@ -220,9 +228,15 @@ export class Crawler {
       // Parse the page
       const page = parsePage(url, response, this.baseDomain, depth)
 
+      // Stage 3 (75%): HTML parsed
+      this.pageProgress.set(url, { stage: 3, timestamp: Date.now() })
+
       // Emit page processed event
       this.onPageProcessed(page)
       this.state.stats.pagesCrawled++
+
+      // Stage 4 (100%): Processing complete
+      this.pageProgress.set(url, { stage: 4, timestamp: Date.now() })
 
       if (response.error) {
         this.state.stats.errors++
@@ -381,6 +395,8 @@ export class Crawler {
       }
     } finally {
       this.state.removeInProgress(url)
+      // Clean up progress tracking
+      this.pageProgress.delete(url)
     }
   }
 
@@ -480,7 +496,12 @@ export class Crawler {
       totalTime: this.state.totalTime,
       stats: this.state.stats,
       backoffState: this.state.backoffState || null,
-      backoffManagerState: this.backoffManager.getState()
+      backoffManagerState: this.backoffManager.getState(),
+      pageProgress: Array.from(this.pageProgress.entries()).map(([url, data]) => ({
+        url,
+        stage: data.stage,
+        timestamp: data.timestamp
+      }))
     }
   }
 
