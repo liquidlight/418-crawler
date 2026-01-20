@@ -135,7 +135,7 @@
           <!-- Tabs -->
           <div class="tabs-header">
             <button class="tab-btn" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">Overview</button>
-            <button class="tab-btn" :class="{ active: activeTab === 'results' }" @click="activeTab = 'results'">Results ({{ pages.length }})</button>
+            <button class="tab-btn" :class="{ active: activeTab === 'results' }" @click="activeTab = 'results'">Results ({{ filteredPages.length }})</button>
             <button class="tab-btn" :class="{ active: activeTab === 'queue' }" @click="activeTab = 'queue'">Pending ({{ pendingCount }})</button>
             <button class="tab-btn" :class="{ active: activeTab === 'log' }" @click="activeTab = 'log'">Log</button>
           </div>
