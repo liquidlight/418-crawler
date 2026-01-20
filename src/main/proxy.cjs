@@ -1,8 +1,15 @@
 const express = require('express')
 const cors = require('cors')
 const fetch = require('node-fetch')
+const https = require('https')
 
 const app = express()
+
+// Create HTTPS agent that ignores certificate validation
+// This is needed for local development with self-signed certificates (e.g., DDEV)
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+})
 
 // Middleware
 app.use(cors())
@@ -57,6 +64,7 @@ app.post('/fetch', async (req, res) => {
     const fetchOptions = {
       method: options.method || 'GET',
       redirect: 'manual',  // Don't follow redirects - let the crawler handle them
+      agent: httpsAgent,  // Use agent that accepts self-signed certs
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -160,6 +168,19 @@ app.post('/fetch', async (req, res) => {
     } else if (error.code === 'ERR_HTTP_REQUEST_TIMEOUT') {
       statusCode = 408
       errorMessage = 'Request timeout'
+    } else if (error.code && error.code.startsWith('ERR_TLS')) {
+      // Certificate errors, self-signed certs, etc.
+      statusCode = 502
+      errorMessage = `TLS/Certificate error: ${errorMessage}`
+    } else if (error.message && error.message.includes('certificate')) {
+      statusCode = 502
+      errorMessage = `Certificate error: ${errorMessage}`
+    } else if (error.message && error.message.includes('self-signed')) {
+      statusCode = 502
+      errorMessage = 'Self-signed certificate'
+    } else if (error.message && error.message.includes('UNABLE_TO_VERIFY_LEAF_SIGNATURE')) {
+      statusCode = 502
+      errorMessage = 'Certificate verification failed'
     }
 
     res.status(statusCode).json({
