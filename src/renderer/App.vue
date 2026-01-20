@@ -318,6 +318,9 @@ export default {
     const filteredPages = computed(() => {
       let result = crawler.pages.value
 
+      // Exclude pending links (only show crawled pages in Results tab)
+      result = result.filter(p => p.isCrawled)
+
       // Apply status filter
       if (statusFilter.value) {
         // Handle grouped status codes (e.g., "3XX")
