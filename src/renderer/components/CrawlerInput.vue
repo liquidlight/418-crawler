@@ -1,5 +1,16 @@
 <template>
-  <div class="crawler-input">
+  <div v-if="inputOnly" class="crawler-input-header">
+    <input
+      id="url-input"
+      v-model="inputUrl"
+      @keyup.enter="handleSubmit"
+      placeholder="https://example.com"
+      type="text"
+      :disabled="disabled"
+      class="url-input"
+    />
+  </div>
+  <div v-else class="crawler-input">
     <div class="input-group">
       <label for="url-input">Website URL</label>
       <div class="input-wrapper">
@@ -35,7 +46,8 @@ export default {
   name: 'CrawlerInput',
   props: {
     url: String,
-    disabled: Boolean
+    disabled: Boolean,
+    inputOnly: Boolean
   },
   emits: ['crawl'],
   setup(props, { emit }) {
@@ -69,12 +81,34 @@ export default {
 </script>
 
 <style scoped>
+:root {
+  --bg-primary: #f8f9fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f6;
+  --bg-elevated: #e8ebf0;
+  --border: #dde1e8;
+  --border-subtle: #e8ecf1;
+
+  --text-primary: #1a1d26;
+  --text-secondary: #5c6370;
+  --text-muted: #8b929e;
+
+  --accent-blue: #2563eb;
+  --accent-blue-soft: rgba(37, 99, 235, 0.1);
+
+  --radius-sm: 6px;
+}
+
 .crawler-input {
   background: white;
   border-radius: 8px;
   padding: 0.5rem 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: 100%;
+}
+
+.crawler-input-header {
+  flex: 1;
 }
 
 .input-group {
@@ -102,13 +136,18 @@ label {
 .url-input {
   flex: 1;
   padding: 0.5rem 0.75rem;
-  border: 2px solid #e1e4e8;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-family: 'Monaco', 'Courier New', monospace;
-  background: white;
-  color: #24292e;
-  transition: all 0.2s;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.crawler-input-header .url-input {
+  max-width: 420px;
+  padding: 9px 14px;
 }
 
 .url-input::placeholder {
@@ -117,8 +156,9 @@ label {
 
 .url-input:focus {
   outline: none;
-  border-color: #0366d6;
-  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+  border-color: var(--accent-blue);
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 3px var(--accent-blue-soft);
 }
 
 .url-input:disabled {

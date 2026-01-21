@@ -1,46 +1,88 @@
 <template>
   <div class="app">
     <!-- Header -->
-    <header class="app-header">
-      <div class="header-left">
-        <h1>418 🫖</h1>
-      </div>
-      <div class="header-right">
-        <ProgressBars
-          v-if="crawlState.isActive && crawlState.rootUrl"
-          :pageProgress="crawlState.pageProgress"
-        />
-        <span v-if="crawlState.rootUrl" class="status-text">{{ statusLabel }}</span>
-        <button @click="triggerFileInput" class="btn btn-secondary">Import</button>
-        <button v-if="crawlState.rootUrl" @click="handleExport" class="btn btn-primary">Export</button>
-        <button v-if="crawlState.rootUrl && (crawlState.isActive || crawlState.isPaused)" @click="handleSaveProgress" class="btn btn-success" title="Save current progress">💾 Save</button>
-        <button v-if="crawlState.rootUrl" @click="handleResetCrawl" class="btn btn-secondary">Reset</button>
-      </div>
-    </header>
+    <header class="header">
+      <!-- Header Top -->
+      <div class="header-top">
+        <div class="logo">
+          <div class="logo-icon">🫖</div>
+          <div class="logo-text">418 <span>Web Crawler</span></div>
+        </div>
 
-    <!-- URL Input Section at Top -->
-    <div class="top-section">
-      <div class="top-content">
-        <CrawlerInput
-          :url="crawlState.rootUrl"
-          :disabled="crawlState.isActive"
-          @crawl="handleStartCrawl"
-        />
-        <div v-if="crawlState.rootUrl" class="control-buttons">
-          <button v-if="!crawlState.isActive && !crawlState.isPaused" @click="handleStartCrawl" class="btn btn-sm btn-primary">▶ Start</button>
-          <button v-if="crawlState.isActive && !crawlState.isPaused" @click="handlePauseCrawl" class="btn btn-sm btn-warning">⏸ Pause</button>
-          <button v-if="crawlState.isPaused" @click="handleResumeCrawl" class="btn btn-sm btn-primary">▶ Resume</button>
-          <button v-if="crawlState.isActive || crawlState.isPaused" @click="handleStopCrawl" class="btn btn-sm btn-danger">⏹ Stop</button>
+        <div class="url-group">
+          <CrawlerInput
+            :url="crawlState.rootUrl"
+            :disabled="crawlState.isActive"
+            @crawl="handleStartCrawl"
+            :input-only="true"
+          />
+          <button v-if="crawlState.rootUrl" @click="handleStartCrawl" class="btn btn-primary">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Crawl
+          </button>
+          <button v-if="crawlState.rootUrl" @click="handleStopCrawl" class="btn btn-danger">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg>
+            Stop
+          </button>
+        </div>
+
+        <div class="header-actions">
+          <button @click="triggerFileInput" class="btn btn-ghost">Import</button>
+          <button v-if="crawlState.rootUrl" @click="handleExport" class="btn btn-primary">Export</button>
+          <button v-if="crawlState.rootUrl" @click="handleResetCrawl" class="btn btn-ghost">Reset</button>
         </div>
       </div>
-    </div>
+
+      <!-- Header Bottom (Progress & Stats) -->
+      <div v-if="crawlState.rootUrl" class="header-bottom">
+        <div class="progress-inline">
+          <span class="pulse" v-if="crawlState.isActive"></span>
+          <div class="progress-info">
+            <div class="progress-top">
+              <span class="progress-label">{{ statusLabel }}</span>
+              <span class="progress-count" v-if="crawlState.stats.pagesFound > 0">{{ crawlState.stats.pagesCrawled }} / {{ crawlState.stats.pagesFound }} URLs</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-pill">
+            <span class="value">{{ crawlState.stats.pagesFound }}</span>
+            <span class="label">Found</span>
+          </div>
+          <div class="stat-pill">
+            <span class="value">{{ crawlState.stats.pagesCrawled }}</span>
+            <span class="label">Crawled</span>
+          </div>
+          <div class="stat-pill">
+            <span class="value">{{ pendingCount }}</span>
+            <span class="label">Pending</span>
+          </div>
+          <div class="stat-pill error" v-if="crawlState.stats.errors > 0" @click="showErrorModal = true" style="cursor: pointer;">
+            <span class="value">{{ crawlState.stats.errors }}</span>
+            <span class="label">Errors</span>
+          </div>
+          <button v-if="crawlState.isActive && !crawlState.isPaused" @click="handlePauseCrawl" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            Pause
+          </button>
+          <button v-if="crawlState.isPaused" @click="handleResumeCrawl" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v18l15-9z"/></svg>
+            Resume
+          </button>
+        </div>
+      </div>
+    </header>
 
     <div v-if="error" class="error-banner">
       <span>{{ error }}</span>
       <button @click="clearError" class="btn-close">×</button>
     </div>
 
-    <main class="app-main">
+    <main class="main">
       <div v-if="!crawlState.rootUrl" class="empty-state">
         <div class="empty-content">
           <h2>418: I'm a teapot</h2>
@@ -59,187 +101,178 @@
         </div>
       </div>
 
-      <div v-else class="layout-grid">
-        <!-- Left Sidebar -->
-        <aside class="sidebar">
-          <!-- Stats Cards -->
-          <div class="stats-sidebar">
-            <div class="stat-card">
-              <div class="stat-label">Found</div>
-              <div class="stat-value">{{ crawlState.stats.pagesFound }}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Crawled</div>
-              <div class="stat-value">{{ crawlState.stats.pagesCrawled }}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Pending</div>
-              <div class="stat-value">{{ pendingCount }}</div>
-            </div>
-            <div class="stat-card" :class="{ 'clickable': crawlState.stats.errors > 0 }" @click="crawlState.stats.errors > 0 && (showErrorModal = true)">
-              <div class="stat-label">Errors</div>
-              <div class="stat-value" :class="{ 'text-danger': crawlState.stats.errors > 0 }">{{ crawlState.stats.errors }}</div>
-            </div>
+      <div v-else class="content-card">
+        <!-- Tabs -->
+        <div class="tabs-row">
+          <div class="tabs">
+            <button class="tab" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">Overview</button>
+            <button class="tab" :class="{ active: activeTab === 'results' }" @click="activeTab = 'results'">Results <span class="tab-count">{{ filteredPages.length }}</span></button>
+            <button class="tab" :class="{ active: activeTab === 'queue' }" @click="activeTab = 'queue'">Pending <span class="tab-count">{{ pendingCount }}</span></button>
+            <button class="tab" :class="{ active: activeTab === 'log' }" @click="activeTab = 'log'">Log</button>
           </div>
+          <span class="realtime-badge" v-if="crawlState.isActive">
+            <span class="realtime-dot"></span>
+            Live
+          </span>
+        </div>
 
-          <!-- Progress Bar -->
-          <div v-if="crawlState.stats.pagesFound > 0" class="progress-compact">
-            <div class="progress-bar-wrapper">
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
+        <!-- Overview Tab -->
+        <div v-if="activeTab === 'overview'" class="overview-content">
+          <!-- Crawl Status -->
+          <div class="overview-card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Crawl Status
               </div>
-              <div class="progress-text">{{ progressPercent }}%</div>
+              <span class="card-badge" v-if="crawlState.isActive">Active</span>
+              <span class="card-badge" v-else>Complete</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">Status</span>
+              <span class="status-value highlight">{{ statusLabel }}</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">Speed</span>
+              <span class="status-value">{{ crawlSpeed.toFixed(2) }} pages/sec</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">Active Requests</span>
+              <span class="status-value">{{ crawlState.inProgressCount }}</span>
+            </div>
+            <div v-if="crawlState.totalTime > 0" class="status-row">
+              <span class="status-label">Elapsed Time</span>
+              <span class="status-value">{{ formatTime(crawlState.totalTime) }}</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">Est. Remaining</span>
+              <span class="status-value">{{ estimatedRemaining }}</span>
             </div>
           </div>
 
-          <!-- Status Code Filters -->
-          <div v-if="statusCodeList.length > 0" class="status-filters-sidebar">
-            <div class="status-filters-title">Status Codes</div>
-            <div class="status-filter-buttons">
+          <!-- Total Pages / Status Distribution -->
+          <ResultsStats :pages="pages" />
+        </div>
+
+        <!-- Results Tab -->
+        <div v-if="activeTab === 'results'" class="tab-content">
+          <!-- Filters Row -->
+          <div class="filters-row">
+            <input type="text" class="search-input" placeholder="Filter by URL, title, or keyword..." v-model="keywordFilter">
+            <div class="filter-divider"></div>
+            <div class="filter-group">
+              <button class="filter-chip" :class="{ active: statusFilter === null }" @click="statusFilter = null">All</button>
               <button
                 v-for="code in statusCodeList"
                 :key="code"
-                @click="handleStatusFilterClick(code)"
+                class="filter-chip"
                 :class="{ active: statusFilter === code }"
-                class="status-filter-btn"
+                @click="statusFilter = statusFilter === code ? null : code"
               >
-                <span class="code">{{ code }}</span>
-                <span class="count">({{ getStatusCount(code) }})</span>
+                <span class="dot" :style="getStatusCodeColor(code)"></span>
+                {{ code }}
+                <span class="count">{{ getStatusCount(code) }}</span>
+              </button>
+            </div>
+            <div class="filter-divider"></div>
+            <div class="filter-group">
+              <button class="filter-chip" :class="{ active: externalFilter === null }" @click="externalFilter = null">All Types</button>
+              <button class="filter-chip" :class="{ active: externalFilter === false }" @click="externalFilter = externalFilter === false ? null : false">
+                Internal <span class="count">{{ internalCount }}</span>
+              </button>
+              <button class="filter-chip" :class="{ active: externalFilter === true }" @click="externalFilter = externalFilter === true ? null : true">
+                External <span class="count">{{ externalCount }}</span>
               </button>
             </div>
           </div>
 
-          <!-- External/Internal Filters -->
-          <div v-if="crawler.pages.value.length > 0" class="external-filters-sidebar">
-            <div class="external-filters-title">Link Type</div>
-            <div class="external-filter-buttons">
-              <button
-                @click="handleLinkTypeFilterClick(false)"
-                :class="{ active: externalFilter === false }"
-                class="external-filter-btn"
-              >
-                <span class="label">Internal</span>
-                <span class="count">({{ internalCount }})</span>
-              </button>
-              <button
-                @click="handleLinkTypeFilterClick(true)"
-                :class="{ active: externalFilter === true }"
-                class="external-filter-btn"
-              >
-                <span class="label">External</span>
-                <span class="count">({{ externalCount }})</span>
-              </button>
+          <!-- Results Table -->
+          <div class="table-container">
+            <table class="results-table" v-if="filteredPages.length > 0">
+              <thead>
+                <tr>
+                  <th style="width: 65px;">Status</th>
+                  <th style="width: 85px;">Type</th>
+                  <th class="sortable">URL</th>
+                  <th class="sortable">Title</th>
+                  <th class="sortable" style="width: 90px;">Time ↓</th>
+                  <th style="width: 70px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(page, idx) in filteredPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 400 }">
+                  <td><span class="status-badge" :class="getStatusBadgeClass(page.statusCode)">{{ page.statusCode || 'pending' }}</span></td>
+                  <td><span class="type-badge" :class="page.isExternal ? 'external' : 'internal'">{{ page.isExternal ? 'External' : 'Internal' }}</span></td>
+                  <td class="url-cell"><span class="url-text">{{ page.url }}</span></td>
+                  <td class="title-cell"><span class="title-text">{{ page.title || 'No title' }}</span></td>
+                  <td class="time-cell">{{ page.responseTime }}ms<div class="time-bar"><div class="time-bar-fill" :class="getTimeBarClass(page.responseTime)" :style="{ width: (page.responseTime / 1000) * 100 + '%' }"></div></div></td>
+                  <td><div class="row-actions">
+                    <button class="action-btn" @click="selectedPage = page" v-if="page.isCrawled" title="View details">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    <button class="action-btn" @click="openExternal(page.url)" title="Open in browser">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-else class="no-results">
+              No results match your filters
             </div>
           </div>
 
-        </aside>
-
-        <!-- Main Content -->
-        <section class="main-content">
-          <!-- Tabs -->
-          <div class="tabs-header">
-            <button class="tab-btn" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">Overview</button>
-            <button class="tab-btn" :class="{ active: activeTab === 'results' }" @click="activeTab = 'results'">Results ({{ filteredPages.length }})</button>
-            <button class="tab-btn" :class="{ active: activeTab === 'queue' }" @click="activeTab = 'queue'">Pending ({{ pendingCount }})</button>
-            <button class="tab-btn" :class="{ active: activeTab === 'log' }" @click="activeTab = 'log'">Log</button>
-          </div>
-
-          <!-- Overview Tab -->
-          <div v-if="activeTab === 'overview'" class="tab-content">
-            <div class="overview-grid">
-              <div class="overview-card">
-                <h3>Crawl Status</h3>
-                <div class="overview-stat">
-                  <span class="label">Status:</span>
-                  <span class="value" :class="statusColorClass">{{ statusLabel }}</span>
-                </div>
-                <div class="overview-stat">
-                  <span class="label">Speed:</span>
-                  <span class="value">{{ crawlSpeed.toFixed(2) }} pages/sec</span>
-                </div>
-                <div class="overview-stat">
-                  <span class="label">Active:</span>
-                  <span class="value">{{ crawlState.inProgressCount }} requests</span>
-                </div>
-                <div v-if="crawlState.totalTime > 0" class="overview-stat">
-                  <span class="label">Total Time:</span>
-                  <span class="value">{{ formatTime(crawlState.totalTime) }}</span>
-                </div>
-              </div>
-
-              <ResultsStats :pages="pages" />
+          <!-- Pagination -->
+          <div class="table-footer">
+            <div class="pagination">
+              <button class="page-btn">←</button>
+              <button class="page-btn active">1</button>
+              <span class="page-info" v-if="filteredPages.length > 0">Showing 1-{{ Math.min(10, filteredPages.length) }} of {{ filteredPages.length }}</span>
+            </div>
+            <div class="bulk-actions">
+              <span class="bulk-select">0 selected</span>
+              <button class="btn btn-ghost">Export Selected</button>
+              <button class="btn btn-ghost">Ignore</button>
             </div>
           </div>
+        </div>
 
-          <!-- Results Tab -->
-          <div v-if="activeTab === 'results'" class="tab-content">
-            <!-- Filter Section -->
-            <div class="filter-section">
-              <!-- Keyword Filter Input -->
-              <div class="keyword-filter">
-                <input
-                  v-model="keywordFilter"
-                  type="text"
-                  placeholder="Filter by keyword (e.g., linkedin)"
-                  class="keyword-input"
-                />
-              </div>
-
-              <!-- Active Filters Display -->
-              <div v-if="statusFilter || externalFilter !== null || keywordFilter" class="active-filters">
-                <div class="filter-header">
-                  <span class="filter-label">
-                    Filtering by:
-                    <span v-if="statusFilter">Status {{ statusFilter }}</span>
-                    <span v-if="statusFilter && (externalFilter !== null || keywordFilter)"> + </span>
-                    <span v-if="externalFilter !== null">{{ externalFilter ? 'External' : 'Internal' }} Links</span>
-                    <span v-if="(statusFilter || externalFilter !== null) && keywordFilter"> + </span>
-                    <span v-if="keywordFilter">"{{ keywordFilter }}"</span>
-                  </span>
-                  <button
-                    v-if="filteredPages.length > 0"
-                    @click="handleExportFiltered"
-                    class="filter-btn export-btn"
-                  >
-                    ↓ Export Filtered ({{ filteredPages.length }})
-                  </button>
-                  <button
-                    @click="handleClearFilters"
-                    class="filter-btn clear-btn"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <ResultsTable
-              :pages="filteredPages"
-              @select-page="selectedPage = $event"
-              @filter-status="statusFilter = $event"
-            />
+        <!-- Pending Tab -->
+        <div v-if="activeTab === 'queue'" class="tab-content">
+          <div class="filters-row">
+            <input type="text" class="search-input" placeholder="Filter pending URLs..." v-model="keywordFilter">
           </div>
-
-          <!-- Pending Tab -->
-          <div v-if="activeTab === 'queue'" class="tab-content">
-            <div class="queue-list">
-              <div v-if="pendingPages.length > 0">
-                <div v-for="(page, idx) in pendingPages" :key="page.url" class="queue-item-full">
-                  <span class="queue-num">{{ idx + 1 }}</span>
-                  <span class="queue-url">{{ page.url }}</span>
-                </div>
-              </div>
-              <div v-else class="empty-queue">
-                No pending URLs
-              </div>
+          <div class="table-container">
+            <table class="results-table" v-if="filteredPendingPages.length > 0">
+              <thead>
+                <tr>
+                  <th style="width: 65px;">Row</th>
+                  <th class="sortable">URL</th>
+                  <th style="width: 70px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(page, idx) in filteredPendingPages" :key="page.url">
+                  <td><span class="status-badge">{{ idx + 1 }}</span></td>
+                  <td class="url-cell"><span class="url-text">{{ page.url }}</span></td>
+                  <td><div class="row-actions">
+                    <button class="action-btn" @click="openExternal(page.url)" title="Open in browser">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-else class="no-results">
+              No pending URLs
             </div>
           </div>
+        </div>
 
-          <!-- Log Tab -->
-          <div v-if="activeTab === 'log'" class="tab-content" style="padding: 0; overflow: hidden;">
-            <LogViewer />
-          </div>
-        </section>
+        <!-- Log Tab -->
+        <div v-if="activeTab === 'log'" class="tab-content" style="padding: 0; overflow: hidden;">
+          <LogViewer />
+        </div>
       </div>
     </main>
 
@@ -265,27 +298,23 @@
 import { ref, onMounted, computed } from 'vue'
 import { useCrawler } from './composables/useCrawler.js'
 import { formatTime } from './utils/timeFormatting.js'
-import { groupStatusCodesByHundreds } from './utils/statusBadges.js'
+import { groupStatusCodesByHundreds, getStatusBadgeClass } from './utils/statusBadges.js'
 import CrawlerInput from './components/CrawlerInput.vue'
 import ResultsStats from './components/ResultsStats.vue'
-import ResultsTable from './components/ResultsTable.vue'
 import PageDetailModal from './components/PageDetailModal.vue'
 import ErrorDetailsModal from './components/ErrorDetailsModal.vue'
 import LogViewer from './components/LogViewer.vue'
 import PreviousCrawls from './components/PreviousCrawls.vue'
-import ProgressBars from './components/ProgressBars.vue'
 
 export default {
   name: 'App',
   components: {
     CrawlerInput,
     ResultsStats,
-    ResultsTable,
     PageDetailModal,
     ErrorDetailsModal,
     LogViewer,
-    PreviousCrawls,
-    ProgressBars
+    PreviousCrawls
   },
   setup() {
     const crawler = useCrawler()
@@ -310,6 +339,15 @@ export default {
     const pendingPages = computed(() =>
       crawler.pages.value.filter(p => !p.isCrawled && !p.isExternal)
     )
+
+    const filteredPendingPages = computed(() => {
+      let result = pendingPages.value
+      if (keywordFilter.value) {
+        const keyword = keywordFilter.value.toLowerCase()
+        result = result.filter(p => p.url.toLowerCase().includes(keyword))
+      }
+      return result
+    })
 
     const pendingCount = computed(() => pendingPages.value.length)
 
@@ -350,7 +388,7 @@ export default {
       // Apply keyword filter
       if (keywordFilter.value) {
         const keyword = keywordFilter.value.toLowerCase()
-        result = result.filter(p => p.url.toLowerCase().includes(keyword))
+        result = result.filter(p => p.url.toLowerCase().includes(keyword) || p.title?.toLowerCase().includes(keyword))
       }
 
       return result
@@ -395,6 +433,26 @@ export default {
       if (state.stats.errors > 0) return 'status-danger'
       if (state.stats.pagesCrawled > 0) return 'status-success'
       return 'status-secondary'
+    })
+
+    const estimatedRemaining = computed(() => {
+      const state = crawler.crawlState.value
+      if (!state.isActive || state.stats.pagesFound === 0) return '~0m'
+
+      const elapsed = Date.now() - state.startTime
+      const pagesCrawled = state.stats.pagesCrawled
+      const pagesRemaining = state.stats.pagesFound - pagesCrawled
+
+      if (pagesCrawled === 0) return '~calculating...'
+
+      const avgTimePerPage = elapsed / pagesCrawled
+      const estimatedMs = pagesRemaining * avgTimePerPage
+
+      const minutes = Math.floor(estimatedMs / 60000)
+      const seconds = Math.floor((estimatedMs % 60000) / 1000)
+
+      if (minutes === 0) return `~${seconds}s`
+      return `~${minutes}m ${seconds}s`
     })
 
     onMounted(async () => {
@@ -600,6 +658,24 @@ export default {
       return crawler.pages.value.filter(p => p.statusCode === code).length
     }
 
+    function getStatusCodeColor(code) {
+      if (code.startsWith('2')) return 'background: var(--accent-green);'
+      if (code.startsWith('3')) return 'background: var(--accent-amber);'
+      if (code.startsWith('4')) return 'background: var(--accent-red);'
+      if (code.startsWith('5')) return 'background: var(--accent-purple);'
+      return 'background: var(--text-muted);'
+    }
+
+    function getTimeBarClass(time) {
+      if (time > 1000) return 'very-slow'
+      if (time > 500) return 'slow'
+      return ''
+    }
+
+    function openExternal(url) {
+      window.open(url, '_blank')
+    }
+
     return {
       crawler,
       selectedPage,
@@ -612,9 +688,13 @@ export default {
       savedCrawls,
       statusCodeList,
       getStatusCount,
+      getStatusCodeColor,
+      getTimeBarClass,
+      getStatusBadgeClass,
       crawlState: crawler.crawlState,
       pages: crawler.pages,
       filteredPages,
+      filteredPendingPages,
       pendingPages,
       pendingCount,
       externalCount,
@@ -624,8 +704,10 @@ export default {
       crawlSpeed,
       statusLabel,
       statusColorClass,
+      estimatedRemaining,
       isBackoffMaxReached: crawler.isBackoffMaxReached,
       formatTime,
+      openExternal,
       handleStartCrawl,
       handlePauseCrawl,
       handleResumeCrawl,
@@ -651,7 +733,35 @@ export default {
 </script>
 
 <style>
-@import './assets/badges.css';
+:root {
+  --bg-primary: #f8f9fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f6;
+  --bg-elevated: #e8ebf0;
+  --border: #dde1e8;
+  --border-subtle: #e8ecf1;
+
+  --text-primary: #1a1d26;
+  --text-secondary: #5c6370;
+  --text-muted: #8b929e;
+
+  --accent-blue: #2563eb;
+  --accent-blue-soft: rgba(37, 99, 235, 0.1);
+  --accent-green: #059669;
+  --accent-green-soft: rgba(5, 150, 105, 0.1);
+  --accent-amber: #d97706;
+  --accent-amber-soft: rgba(217, 119, 6, 0.1);
+  --accent-red: #dc2626;
+  --accent-red-soft: rgba(220, 38, 38, 0.08);
+  --accent-purple: #7c3aed;
+  --accent-purple-soft: rgba(124, 58, 237, 0.1);
+  --accent-slate: #64748b;
+  --accent-slate-soft: rgba(100, 116, 139, 0.1);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
 </style>
 
 <style scoped>
@@ -660,536 +770,702 @@ export default {
   width: 100vw;
   display: flex;
   flex-direction: column;
-  background: #fafbfc;
+  background: var(--bg-primary);
   overflow: hidden;
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  color: var(--text-primary);
 }
 
-.app-header {
-  background: white;
-  border-bottom: 1px solid #e0e4e8;
-  padding: 1rem 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+/* Header */
+.header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 100;
   flex-shrink: 0;
 }
 
-.header-left {
+.header-top {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.app-header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: #24292e;
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+}
+
+.logo-text {
   font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
 }
 
-.header-right {
+.logo-text span {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.url-group {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 8px;
+  flex: 1;
 }
 
-.status-text {
-  font-size: 0.9rem;
-  color: #586069;
-  padding: 0.5rem 1rem;
-  background: #f6f8fa;
-  border-radius: 4px;
-}
-
-.top-section {
-  background: white;
-  border-bottom: 1px solid #e0e4e8;
-  padding: 0.75rem 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.header-actions {
+  display: flex;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-.top-content {
+.header-bottom {
   display: flex;
-  gap: 1rem;
   align-items: center;
-}
-
-.control-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-.error-banner {
-  background: #ffeaea;
-  border-bottom: 1px solid #ffb3b3;
-  color: #d9534f;
-  padding: 0.75rem 1.5rem;
-  display: flex;
   justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg-tertiary);
+}
+
+.progress-inline {
+  display: flex;
   align-items: center;
-  font-size: 0.9rem;
-  flex-shrink: 0;
+  gap: 12px;
 }
 
-.btn-close {
-  background: none;
-  border: none;
-  color: #d9534f;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0;
+.pulse {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
 }
 
-.app-main {
-  flex: 1;
-  padding: 1.5rem;
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.progress-info {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  width: 100%;
+  gap: 4px;
 }
 
-.layout-grid {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 1.5rem;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.sidebar {
-  background: white;
-  border-radius: 6px;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+.progress-top {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  overflow-y: auto;
-  min-height: 0;
+  align-items: center;
+  gap: 12px;
 }
 
-.stats-sidebar {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.stat-card {
-  background: #f6f8fa;
-  padding: 0.75rem;
-  border-radius: 4px;
-  text-align: center;
-  border: 1px solid #e1e4e8;
-}
-
-.stat-card.clickable {
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.stat-card.clickable:hover {
-  background: #e1e4e8;
-  border-color: #d1d5da;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: #586069;
+.progress-label {
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 0.25rem;
+  color: var(--text-primary);
 }
 
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #24292e;
-}
-
-.text-danger {
-  color: #d9534f;
-}
-
-.progress-compact {
-  margin: 0.5rem 0;
-}
-
-.progress-bar-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.progress-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .progress-bar {
-  flex: 1;
-  height: 6px;
-  background: #e1e4e8;
-  border-radius: 3px;
+  width: 200px;
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .progress-fill {
-  background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
   height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
   transition: width 0.3s ease;
 }
 
-.progress-text {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #24292e;
-  min-width: 35px;
-  text-align: right;
-}
-
-.status-breakdown {
-  border-top: 1px solid #e1e4e8;
-  padding-top: 1rem;
-  margin-top: 1rem;
-}
-
-.breakdown-title {
-  font-size: 0.75rem;
-  color: #24292e;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 0.75rem;
-}
-
-.status-filters {
+.stats-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.status-filter-btn {
-  padding: 0.4rem 0.6rem;
-  background: #f6f8fa;
-  border: 1px solid #e1e4e8;
-  border-radius: 3px;
-  font-size: 0.75rem;
-  color: #24292e;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-  font-weight: 500;
-}
-
-.status-filter-btn:hover {
-  background: #e1e4e8;
-  border-color: #d1d5da;
-}
-
-.status-filter-btn.active {
-  background: #0366d6;
-  color: white;
-  border-color: #0366d6;
-}
-
-.status-filters-sidebar {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e1e4e8;
-}
-
-.status-filters-title {
-  font-size: 0.75rem;
-  color: #24292e;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 0.75rem;
-}
-
-.status-filter-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.status-count {
-  float: right;
-  color: inherit;
-  opacity: 0.8;
-}
-
-.external-filters-sidebar {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e1e4e8;
-}
-
-.external-filters-title {
-  font-size: 0.75rem;
-  color: #24292e;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 0.75rem;
-}
-
-.external-filter-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.external-filter-btn {
-  padding: 0.4rem 0.6rem;
-  background: #f6f8fa;
-  border: 1px solid #e1e4e8;
-  border-radius: 3px;
-  font-size: 0.75rem;
-  color: #24292e;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-  font-weight: 500;
-}
-
-.external-filter-btn:hover {
-  background: #e1e4e8;
-  border-color: #d1d5da;
-}
-
-.external-filter-btn.active {
-  background: #0366d6;
-  color: white;
-  border-color: #0366d6;
-}
-
-.sidebar-section {
-  border-top: 1px solid #e1e4e8;
-  padding-top: 1rem;
-}
-
-.sidebar-title {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.8rem;
-  color: #24292e;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.filter-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.filter-item {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
+  gap: 6px;
 }
 
-.filter-btn {
-  flex: 1;
-  padding: 0.5rem;
-  background: #f6f8fa;
-  border: 1px solid #e1e4e8;
-  border-radius: 3px;
-  font-size: 0.85rem;
-  color: #24292e;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
 }
 
-.filter-btn:hover {
-  background: #e1e4e8;
-}
-
-.filter-btn.active {
-  background: #0366d6;
-  color: white;
-  border-color: #0366d6;
-}
-
-.clear-btn {
-  width: 100%;
-  background: white;
-  border-color: #d9534f;
-  color: #d9534f;
-}
-
-.clear-btn:hover {
-  background: #ffeaea;
-}
-
-.count {
-  font-size: 0.75rem;
-  color: #6a737d;
+.stat-pill .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
   font-weight: 600;
-  background: #f6f8fa;
-  padding: 0.25rem 0.5rem;
-  border-radius: 3px;
-  min-width: 30px;
-  text-align: center;
+  color: var(--text-primary);
 }
 
-.main-content {
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+.stat-pill .label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stat-pill.error {
+  background: var(--accent-red-soft);
+  border-color: rgba(220, 38, 38, 0.15);
+  cursor: pointer;
+}
+
+.stat-pill.error:hover {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.stat-pill.error .value {
+  color: var(--accent-red);
+}
+
+/* Main Content */
+.main {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  flex: 1;
+  overflow: hidden;
+  width: 100%;
+}
+
+.content-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  flex: 1;
+  height: 100%;
 }
 
-.tabs-header {
+/* Tabs */
+.tabs-row {
   display: flex;
-  border-bottom: 1px solid #e1e4e8;
-  padding: 0 1rem;
-  gap: 2rem;
-  background: #fafbfc;
-  border-radius: 6px 6px 0 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
 }
 
-.tab-btn {
-  padding: 0.75rem 0;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #586069;
-  font-size: 0.9rem;
+.tabs {
+  display: flex;
+}
+
+.tab {
+  padding: 12px 16px;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  position: relative;
+  transition: color 0.15s ease;
 }
 
-.tab-btn:hover {
-  color: #24292e;
+.tab:hover {
+  color: var(--text-secondary);
 }
 
-.tab-btn.active {
-  color: #0366d6;
-  border-bottom-color: #0366d6;
+.tab.active {
+  color: var(--accent-blue);
 }
 
-.tab-content {
-  flex: 1;
-  padding: 1.5rem;
-  overflow-y: auto;
-  min-height: 0;
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: var(--accent-blue);
+  border-radius: 2px 2px 0 0;
 }
 
-.overview-grid {
+.tab-count {
+  margin-left: 5px;
+  padding: 2px 7px;
+  background: var(--bg-tertiary);
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.tab.active .tab-count {
+  background: var(--accent-blue-soft);
+  color: var(--accent-blue);
+}
+
+.realtime-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--accent-green-soft);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-green);
+}
+
+.realtime-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+/* Overview Content */
+.overview-content {
+  padding: 20px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 16px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .overview-card {
-  background: #f6f8fa;
-  padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid #e1e4e8;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  border: 1px solid var(--border-subtle);
 }
 
-.overview-card h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-  color: #24292e;
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
-.overview-stat {
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title svg {
+  color: var(--text-muted);
+}
+
+.card-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--accent-green-soft);
+  color: var(--accent-green);
+}
+
+.status-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #e1e4e8;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.overview-stat:last-child {
+.status-row:last-child {
   border-bottom: none;
 }
 
-.overview-stat .label {
-  font-size: 0.85rem;
-  color: #586069;
-  font-weight: 500;
+.status-label {
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
-.overview-stat .value {
-  font-size: 0.95rem;
+.status-value {
+  font-size: 13px;
   font-weight: 600;
-  color: #24292e;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
 }
 
-.status-success {
-  color: #28a745;
+.status-value.highlight {
+  color: var(--accent-blue);
 }
 
-.status-danger {
-  color: #d9534f;
+/* Filters */
+.filters-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
 }
 
-.status-warning {
-  color: #ffc107;
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px 9px 36px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b929e' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 11px center;
 }
 
-.status-info {
-  color: #0366d6;
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background-color: var(--bg-secondary);
 }
 
-.status-secondary {
-  color: #6a737d;
+.filter-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
 }
 
-.queue-list {
+.filter-group {
+  display: flex;
+  gap: 6px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-chip:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.filter-chip.active {
+  background: var(--accent-blue-soft);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.filter-chip .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.filter-chip .count {
+  padding: 1px 5px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+.filter-chip.active .count {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+/* Results Table */
+.table-container {
+  flex: 1;
+  overflow-x: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  flex: 1;
-  overflow-y: auto;
   min-height: 0;
 }
 
-.queue-item-full {
-  display: flex;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: #f6f8fa;
-  border-radius: 4px;
-  border: 1px solid #e1e4e8;
-  font-size: 0.85rem;
-  align-items: flex-start;
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
 
-.queue-num {
+.results-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 10px;
   font-weight: 600;
-  color: #6a737d;
-  min-width: 30px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
 }
 
-.queue-url {
-  color: #0366d6;
-  word-break: break-all;
+.results-table th.sortable {
+  cursor: pointer;
 }
 
-.empty-queue {
-  padding: 2rem 1rem;
+.results-table th.sortable:hover {
+  color: var(--text-secondary);
+}
+
+.results-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.results-table tbody tr {
+  transition: background 0.1s ease;
+  cursor: pointer;
+}
+
+.results-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+.results-table tbody tr.error-row {
+  background: var(--accent-red-soft);
+}
+
+.results-table tbody tr.error-row:hover {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-badge.s2xx { background: var(--accent-green-soft); color: var(--accent-green); }
+.status-badge.s3xx { background: var(--accent-amber-soft); color: var(--accent-amber); }
+.status-badge.s4xx { background: var(--accent-red-soft); color: var(--accent-red); }
+.status-badge.s5xx { background: var(--accent-purple-soft); color: var(--accent-purple); }
+.status-badge.s1xx { background: var(--accent-slate-soft); color: var(--accent-slate); }
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.type-badge.internal { background: var(--accent-blue-soft); color: var(--accent-blue); }
+.type-badge.external { background: var(--accent-purple-soft); color: var(--accent-purple); }
+
+.url-cell { max-width: 300px; }
+
+.url-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+tr:hover .url-text { color: var(--accent-blue); }
+
+.title-cell { max-width: 200px; }
+
+.title-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.time-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.time-bar {
+  width: 50px;
+  height: 3px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.time-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent-green);
+}
+
+.time-bar-fill.slow { background: var(--accent-amber); }
+.time-bar-fill.very-slow { background: var(--accent-red); }
+
+.row-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  display: flex;
+  gap: 4px;
+}
+
+.results-table tbody tr:hover .row-actions { opacity: 1; }
+
+.action-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
+  background: var(--accent-blue-soft);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.page-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.page-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.page-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bulk-select {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.no-results {
+  padding: 2rem;
   text-align: center;
-  color: #6a737d;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* Tab Content */
+.tab-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Empty State */
 .empty-state {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   min-height: 0;
   height: 100%;
@@ -1204,9 +1480,9 @@ export default {
 }
 
 .previous-section {
-  border-top: 1px solid #e8e8e8;
+  border-top: 1px solid var(--border-subtle);
   padding: 1.5rem;
-  background: #fafbfc;
+  background: var(--bg-tertiary);
   flex: 1;
   overflow-y: auto;
   min-height: 0;
@@ -1215,226 +1491,87 @@ export default {
 .empty-content h2 {
   margin: 0 0 0.5rem 0;
   font-size: 2.5rem;
-  color: #24292e;
+  color: var(--text-primary);
   font-weight: 700;
 }
 
 .empty-subtitle {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
-  color: #586069;
+  color: var(--text-secondary);
 }
 
 .empty-instruction {
   margin: 0;
   font-size: 0.95rem;
-  color: #6a737d;
+  color: var(--text-muted);
 }
 
-.filter-section {
-  padding: 1rem;
-  background: #f6f8fa;
-  border-bottom: 1px solid #e1e4e8;
-  margin-bottom: 1rem;
-  border-radius: 4px;
-}
-
-.keyword-filter {
-  margin-bottom: 1rem;
-}
-
-.keyword-input {
-  width: 100%;
-  max-width: 400px;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #d1d5da;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  color: #24292e;
-  background: white;
-  transition: border-color 0.2s;
-}
-
-.keyword-input:focus {
-  outline: none;
-  border-color: #0366d6;
-  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
-}
-
-.keyword-input::placeholder {
-  color: #6a737d;
-}
-
-.active-filters {
-  display: block;
-}
-
-.filter-header {
+.error-banner {
+  background: var(--accent-red-soft);
+  border-bottom: 1px solid rgba(220, 38, 38, 0.2);
+  color: var(--accent-red);
+  padding: 0.75rem 1.5rem;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.filter-label {
-  font-weight: 600;
-  color: #24292e;
   font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
-.filter-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  padding: 0.4rem 0.8rem;
-  background: white;
-  border: 1px solid #d1d5da;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #24292e;
+.btn-close {
+  background: none;
+  border: none;
+  color: var(--accent-red);
+  font-size: 1.2rem;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.filter-btn:hover {
-  background: #e1e4e8;
-  border-color: #0366d6;
-}
-
-.filter-btn.active {
-  background: #0366d6;
-  color: white;
-  border-color: #0366d6;
-}
-
-.filter-btn.clear-btn {
-  background: white;
-  border-color: #d9534f;
-  color: #d9534f;
-}
-
-.filter-btn.clear-btn:hover {
-  background: #ffeaea;
-}
-
-.filter-btn.export-btn {
-  background: #3498db;
-  border-color: #2980b9;
-  color: white;
-  font-weight: 700;
-}
-
-.filter-btn.export-btn:hover {
-  background: #2980b9;
-  border-color: #1f618d;
+  padding: 0;
 }
 
 /* Button styles */
 .btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid #d1d5da;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
   cursor: pointer;
-  transition: all 0.2s;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .btn-primary {
-  background: #0366d6;
+  background: var(--accent-blue);
   color: white;
-  border-color: #0366d6;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
 }
 
 .btn-primary:hover {
-  background: #0256c7;
-}
-
-.btn-secondary {
-  background: #f6f8fa;
-  color: #24292e;
-}
-
-.btn-secondary:hover {
-  background: #e1e4e8;
+  background: #1d4ed8;
 }
 
 .btn-danger {
-  background: #d9534f;
-  color: white;
-  border-color: #d9534f;
+  background: var(--accent-red-soft);
+  color: var(--accent-red);
+  border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 .btn-danger:hover {
-  background: #c94440;
-}
-
-.btn-warning {
-  background: #ffc107;
-  color: #24292e;
-  border-color: #ffc107;
-}
-
-.btn-warning:hover {
-  background: #ffb300;
-}
-
-.btn-success {
-  background: #27ae60;
+  background: var(--accent-red);
   color: white;
-  border-color: #27ae60;
-}
-
-.btn-success:hover {
-  background: #229954;
-}
-
-.btn-sm {
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-@media (max-width: 768px) {
-  .header-right {
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .layout-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .overview-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .top-content {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .control-buttons {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .control-buttons .btn {
-    flex: 1;
-    min-width: 80px;
-  }
 }
 </style>
