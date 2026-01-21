@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="display: contents">
     <!-- Total Pages -->
     <div class="overview-card">
       <div class="card-header">
