@@ -153,14 +153,19 @@ export default {
     }
 
     function getTypeCount(type) {
-      if (type === 'html') {
-        return props.pages.filter(p => p.url && (p.url.endsWith('.html') || p.url.endsWith('/') || !p.url.includes('.'))).length
-      } else if (type === 'pdf') {
-        return props.pages.filter(p => p.url && p.url.endsWith('.pdf')).length
-      } else if (type === 'other') {
-        return props.pages.filter(p => p.url && p.url.includes('.') && !p.url.endsWith('.html') && !p.url.endsWith('.pdf')).length
-      }
-      return 0
+      return props.pages.filter(p => {
+        const contentType = p.contentType ? p.contentType.toLowerCase() : ''
+        const mainType = contentType.split(';')[0].trim()
+
+        if (type === 'html') {
+          return mainType === 'text/html' || mainType === 'application/xhtml+xml'
+        } else if (type === 'pdf') {
+          return mainType === 'application/pdf'
+        } else if (type === 'other') {
+          return mainType && mainType !== 'text/html' && mainType !== 'application/xhtml+xml' && mainType !== 'application/pdf'
+        }
+        return false
+      }).length
     }
 
     return {
