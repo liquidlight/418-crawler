@@ -84,10 +84,45 @@
 
     <main class="main">
       <div v-if="!crawlState.rootUrl" class="empty-state">
-        <div class="empty-content">
-          <h2>418: I'm a teapot</h2>
-          <p class="empty-subtitle">I'm a short and stout teapot</p>
-          <p class="empty-instruction">Here's my handle, here's my spout</p>
+        <div class="hero">
+          <div class="hero-icon">🫖</div>
+          <h1 class="hero-title">Crawl any website</h1>
+          <p class="hero-subtitle">Discover broken links, analyse status codes, and audit your site structure in seconds.</p>
+        </div>
+
+        <div class="crawl-input-section">
+          <div class="input-wrapper">
+            <input v-model="crawlState.rootUrl" type="text" class="url-input" placeholder="https://example.com" @keyup.enter="handleStartCrawl(crawlState.rootUrl)">
+            <button @click="handleStartCrawl(crawlState.rootUrl)" class="btn btn-primary btn-lg">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+              Start Crawl
+            </button>
+          </div>
+          <div class="input-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+            Enter the full URL including https://
+          </div>
+
+          <div class="features">
+            <div class="feature">
+              <span class="feature-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+              Find broken links
+            </div>
+            <div class="feature">
+              <span class="feature-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+              Check redirects
+            </div>
+            <div class="feature">
+              <span class="feature-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+              Export reports
+            </div>
+          </div>
         </div>
 
         <div class="previous-section">
@@ -1573,5 +1608,137 @@ tr:hover .url-text { color: var(--accent-blue); }
 .btn-danger:hover {
   background: var(--accent-red);
   color: white;
+}
+
+/* Hero Section */
+.hero {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.hero-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 24px;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+}
+
+.hero-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* URL Input Section */
+.crawl-input-section {
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  padding: 32px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  margin-bottom: 40px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.input-wrapper {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.url-input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 4px var(--accent-blue-soft);
+}
+
+.url-input::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 15px;
+  border-radius: var(--radius-md);
+}
+
+.input-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.input-hint svg {
+  flex-shrink: 0;
+}
+
+/* Features List */
+.features {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.feature-icon {
+  width: 20px;
+  height: 20px;
+  background: var(--accent-green-soft);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-green);
+  flex-shrink: 0;
+}
+
+.accent-green-soft {
+  background: rgba(5, 150, 105, 0.1);
+}
+
+.accent-green {
+  color: #059669;
 }
 </style>
