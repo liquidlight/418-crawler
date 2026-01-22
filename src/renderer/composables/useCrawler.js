@@ -625,6 +625,56 @@ export function useCrawler() {
     return await db.getPagesByFileType(fileType)
   }
 
+  /**
+   * Re-queue a page for processing (remove from results and add back to pending)
+   */
+  async function requeuePage(url) {
+    try {
+      const normalizedUrl = normalizeUrl(url) || url
+
+      // Find the page in the pages array
+      const pageIndex = pages.value.findIndex(p => p.url === normalizedUrl)
+      if (pageIndex === -1) {
+        throw new Error('Page not found')
+      }
+
+      const page = pages.value[pageIndex]
+
+      // Create a new page object with crawled state reset
+      const reQueuedPage = {
+        ...page,
+        isCrawled: false,
+        statusCode: null,
+        title: null,
+        contentType: null,
+        fileType: null,
+        redirectUrl: null,
+        responseTime: null
+      }
+
+      // Update in database
+      await db.savePage(reQueuedPage)
+
+      // Update in pages array
+      const updated = [...pages.value]
+      updated[pageIndex] = markRaw(reQueuedPage)
+      pages.value = updated
+
+      // Add back to crawler queue if crawler is running
+      if (crawlerInstance && crawlerInstance.state) {
+        // Remove from visited set so it can be queued again
+        crawlerInstance.state.visited.delete(normalizedUrl)
+        crawlerInstance.state.addToQueue(normalizedUrl, 0)
+      }
+
+      return reQueuedPage
+    } catch (e) {
+      error.value = e.message
+      console.error('Failed to re-queue page:', e)
+      throw e
+    }
+  }
+
   // Auto-save state periodically when crawling
   watch(
     () => crawlState.value.visitedCount,
@@ -669,6 +719,7 @@ export function useCrawler() {
     deleteSavedCrawl,
     getPageByUrl,
     getPagesByStatus,
-    getPagesByFileType
+    getPagesByFileType,
+    requeuePage
   }
 }

@@ -309,6 +309,9 @@
                   <td class="title-cell"><span class="title-text">{{ page.title || 'No title' }}</span></td>
                   <td class="time-cell">{{ page.responseTime }}ms<div class="time-bar"><div class="time-bar-fill" :class="getTimeBarClass(page.responseTime)" :style="{ width: (page.responseTime / 1000) * 100 + '%' }"></div></div></td>
                   <td><div class="row-actions">
+                    <button class="action-btn" @click.stop="handleRequeueLink(page)" title="Re-queue for reprocessing">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </button>
                     <button class="action-btn" @click.stop="openExternal(page.url)" title="Open in browser">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     </button>
@@ -839,6 +842,15 @@ export default {
       activeTab.value = 'results'
     }
 
+    async function handleRequeueLink(page) {
+      try {
+        await crawler.requeuePage(page.url)
+        error.value = null
+      } catch (e) {
+        error.value = 'Failed to re-queue link: ' + e.message
+      }
+    }
+
     function clearError() {
       error.value = null
     }
@@ -979,6 +991,7 @@ export default {
       handleFilterStatus,
       handleFilterFileType,
       handleFilterExternal,
+      handleRequeueLink,
       clearError
     }
   }
