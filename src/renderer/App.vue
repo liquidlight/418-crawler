@@ -198,43 +198,80 @@
           <div class="filters-row">
             <input type="text" class="search-input" placeholder="Filter by URL, title, or keyword..." v-model="keywordFilter">
             <div class="filter-divider"></div>
-            <div class="filter-group">
-              <button class="filter-chip" :class="{ active: statusFilter === null }" @click="statusFilter = null">All</button>
-              <button
-                v-for="code in statusCodeList"
-                :key="code"
-                class="filter-chip"
-                :class="{ active: statusFilter === code }"
-                @click="statusFilter = statusFilter === code ? null : code"
-              >
-                <span class="dot" :style="getStatusCodeColor(code)"></span>
-                {{ code }}
-                <span class="count">{{ getStatusCount(code) }}</span>
+
+            <!-- Status Code Dropdown -->
+            <div class="filter-dropdown" :class="{ open: openDropdown === 'status' }" @click.outside="openDropdown = null">
+              <button class="filter-trigger" :class="{ 'has-selection': statusFilter.length > 0 }" @click="openDropdown = openDropdown === 'status' ? null : 'status'">
+                <span class="label">Status Code</span>
+                <span v-if="statusFilter.length > 0" class="selection-count">{{ statusFilter.length }}</span>
+                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
+              <div class="filter-panel">
+                <div class="filter-panel-header">
+                  <span class="filter-panel-title">Status Codes</span>
+                  <button class="filter-panel-clear" v-if="statusFilter.length > 0" @click.stop="clearStatusFilter">Clear</button>
+                </div>
+                <div class="filter-options">
+                  <label class="filter-option" v-for="code in statusCodeList" :key="code">
+                    <input type="checkbox" :checked="statusFilter.includes(code)" @change="toggleStatusCode(code)">
+                    <span class="dot" :style="getStatusCodeColor(code)"></span>
+                    <span class="option-label">{{ code }}</span>
+                    <span class="option-count">{{ getStatusCount(code) }}</span>
+                  </label>
+                </div>
+              </div>
             </div>
-            <div class="filter-divider"></div>
-            <div class="filter-group">
-              <button class="filter-chip" :class="{ active: externalFilter === null }" @click="externalFilter = null">All Types</button>
-              <button class="filter-chip" :class="{ active: externalFilter === false }" @click="externalFilter = externalFilter === false ? null : false">
-                Internal <span class="count">{{ internalCount }}</span>
+
+            <!-- Link Type Dropdown -->
+            <div class="filter-dropdown" :class="{ open: openDropdown === 'external' }" @click.outside="openDropdown = null">
+              <button class="filter-trigger" :class="{ 'has-selection': externalFilter.length > 0 }" @click="openDropdown = openDropdown === 'external' ? null : 'external'">
+                <span class="label">Link Type</span>
+                <span v-if="externalFilter.length > 0" class="selection-count">{{ externalFilter.length }}</span>
+                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
-              <button class="filter-chip" :class="{ active: externalFilter === true }" @click="externalFilter = externalFilter === true ? null : true">
-                External <span class="count">{{ externalCount }}</span>
-              </button>
+              <div class="filter-panel">
+                <div class="filter-panel-header">
+                  <span class="filter-panel-title">Link Type</span>
+                  <button class="filter-panel-clear" v-if="externalFilter.length > 0" @click.stop="clearExternalFilter">Clear</button>
+                </div>
+                <div class="filter-options">
+                  <label class="filter-option">
+                    <input type="checkbox" :checked="externalFilter.includes('internal')" @change="toggleExternalFilter('internal')">
+                    <span class="dot" style="background: var(--accent-blue)"></span>
+                    <span class="option-label">Internal</span>
+                    <span class="option-count">{{ internalCount }}</span>
+                  </label>
+                  <label class="filter-option">
+                    <input type="checkbox" :checked="externalFilter.includes('external')" @change="toggleExternalFilter('external')">
+                    <span class="dot" style="background: var(--accent-purple)"></span>
+                    <span class="option-label">External</span>
+                    <span class="option-count">{{ externalCount }}</span>
+                  </label>
+                </div>
+              </div>
             </div>
-            <div class="filter-divider"></div>
-            <div class="filter-group">
-              <button class="filter-chip" :class="{ active: fileTypeFilter === null }" @click="fileTypeFilter = null">All Files</button>
-              <button
-                v-for="type in fileTypeList"
-                :key="type"
-                class="filter-chip"
-                :class="{ active: fileTypeFilter === type }"
-                @click="fileTypeFilter = fileTypeFilter === type ? null : type"
-              >
-                {{ getFileTypeLabel(type) }}
-                <span class="count">{{ getFileTypeCount(type) }}</span>
+
+            <!-- File Type Dropdown -->
+            <div class="filter-dropdown" :class="{ open: openDropdown === 'filetype' }" @click.outside="openDropdown = null">
+              <button class="filter-trigger" :class="{ 'has-selection': fileTypeFilter.length > 0 }" @click="openDropdown = openDropdown === 'filetype' ? null : 'filetype'">
+                <span class="label">File Type</span>
+                <span v-if="fileTypeFilter.length > 0" class="selection-count">{{ fileTypeFilter.length }}</span>
+                <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
+              <div class="filter-panel">
+                <div class="filter-panel-header">
+                  <span class="filter-panel-title">File Type</span>
+                  <button class="filter-panel-clear" v-if="fileTypeFilter.length > 0" @click.stop="clearFileTypeFilter">Clear</button>
+                </div>
+                <div class="filter-options">
+                  <label class="filter-option" v-for="type in fileTypeList" :key="type">
+                    <input type="checkbox" :checked="fileTypeFilter.includes(type)" @change="toggleFileType(type)">
+                    <span class="dot" style="background: var(--accent-slate)"></span>
+                    <span class="option-label">{{ getFileTypeLabel(type) }}</span>
+                    <span class="option-count">{{ getFileTypeCount(type) }}</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -374,12 +411,13 @@ export default {
     const selectedPage = ref(null)
     const error = ref(null)
     const showErrorModal = ref(false)
-    const statusFilter = ref(null)
-    const externalFilter = ref(null) // null = all, true = external only, false = internal only
-    const fileTypeFilter = ref(null) // null = all, or specific type like 'html', 'pdf', 'js', etc.
+    const statusFilter = ref([]) // array of selected status codes
+    const externalFilter = ref([]) // array: 'internal' and/or 'external'
+    const fileTypeFilter = ref([]) // array of selected file types
     const keywordFilter = ref('')
     const activeTab = ref('overview')
     const landingPageUrl = ref('')
+    const openDropdown = ref(null) // 'status', 'external', 'filetype', or null
 
     const savedCrawls = computed(() => crawler.getSavedCrawls())
 
@@ -449,29 +487,37 @@ export default {
       // Exclude pending links (only show crawled pages in Results tab)
       result = result.filter(p => p.isCrawled)
 
-      // Apply status filter
-      if (statusFilter.value) {
-        // Handle grouped status codes (e.g., "3XX")
-        if (statusFilter.value.endsWith('XX')) {
-          const hundreds = parseInt(statusFilter.value)
-          result = result.filter(p => {
-            if (!p.statusCode) return false
-            return Math.floor(p.statusCode / 100) === hundreds
+      // Apply status filter (array)
+      if (statusFilter.value.length > 0) {
+        result = result.filter(p => {
+          if (!p.statusCode) return false
+          // Check if status code group matches any selected status codes
+          return statusFilter.value.some(code => {
+            if (code.endsWith('XX')) {
+              const hundreds = parseInt(code)
+              return Math.floor(p.statusCode / 100) === hundreds
+            } else {
+              return p.statusCode === parseInt(code)
+            }
           })
-        } else {
-          // Handle specific status codes
-          result = result.filter(p => p.statusCode === statusFilter.value)
-        }
+        })
       }
 
-      // Apply external/internal filter
-      if (externalFilter.value !== null) {
-        result = result.filter(p => p.isExternal === externalFilter.value)
+      // Apply external/internal filter (array)
+      if (externalFilter.value.length > 0) {
+        result = result.filter(p => {
+          if (externalFilter.value.includes('external')) return p.isExternal
+          if (externalFilter.value.includes('internal')) return !p.isExternal
+          return true
+        })
       }
 
-      // Apply file type filter
-      if (fileTypeFilter.value) {
-        result = result.filter(p => getFileType(p.contentType || '') === fileTypeFilter.value)
+      // Apply file type filter (array)
+      if (fileTypeFilter.value.length > 0) {
+        result = result.filter(p => {
+          const type = getFileType(p.contentType || '')
+          return fileTypeFilter.value.includes(type)
+        })
       }
 
       // Apply keyword filter
@@ -765,6 +811,42 @@ export default {
       window.open(url, '_blank')
     }
 
+    function toggleStatusCode(code) {
+      if (statusFilter.value.includes(code)) {
+        statusFilter.value = statusFilter.value.filter(c => c !== code)
+      } else {
+        statusFilter.value = [...statusFilter.value, code]
+      }
+    }
+
+    function toggleExternalFilter(type) {
+      if (externalFilter.value.includes(type)) {
+        externalFilter.value = externalFilter.value.filter(t => t !== type)
+      } else {
+        externalFilter.value = [...externalFilter.value, type]
+      }
+    }
+
+    function toggleFileType(type) {
+      if (fileTypeFilter.value.includes(type)) {
+        fileTypeFilter.value = fileTypeFilter.value.filter(t => t !== type)
+      } else {
+        fileTypeFilter.value = [...fileTypeFilter.value, type]
+      }
+    }
+
+    function clearStatusFilter() {
+      statusFilter.value = []
+    }
+
+    function clearExternalFilter() {
+      externalFilter.value = []
+    }
+
+    function clearFileTypeFilter() {
+      fileTypeFilter.value = []
+    }
+
     return {
       crawler,
       selectedPage,
@@ -776,6 +858,7 @@ export default {
       keywordFilter,
       activeTab,
       landingPageUrl,
+      openDropdown,
       savedCrawls,
       statusCodeList,
       fileTypeList,
@@ -802,6 +885,12 @@ export default {
       isBackoffMaxReached: crawler.isBackoffMaxReached,
       formatTime,
       openExternal,
+      toggleStatusCode,
+      toggleExternalFilter,
+      toggleFileType,
+      clearStatusFilter,
+      clearExternalFilter,
+      clearFileTypeFilter,
       handleStartCrawl,
       handlePauseCrawl,
       handleResumeCrawl,
@@ -1801,5 +1890,182 @@ tr:hover .url-text { color: var(--accent-blue); }
 
 .accent-green {
   color: #059669;
+}
+
+/* Dropdown Filter Styles */
+.filter-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+.filter-trigger:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.filter-trigger.has-selection {
+  background: var(--accent-blue-soft);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.filter-trigger .label {
+  flex: 1;
+  text-align: left;
+}
+
+.filter-trigger .chevron {
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.filter-dropdown.open .filter-trigger .chevron {
+  transform: rotate(180deg);
+}
+
+.filter-trigger .selection-count {
+  padding: 2px 6px;
+  background: var(--accent-blue);
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Dropdown Panel */
+.filter-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 200px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  z-index: 50;
+  display: none;
+}
+
+.filter-dropdown.open .filter-panel {
+  display: block;
+}
+
+.filter-panel-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.filter-panel-clear {
+  font-size: 11px;
+  color: var(--accent-blue);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+}
+
+.filter-panel-clear:hover {
+  text-decoration: underline;
+}
+
+.filter-options {
+  padding: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  margin-bottom: 2px;
+}
+
+.filter-option:hover {
+  background: var(--bg-tertiary);
+}
+
+.filter-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.filter-option input[type="checkbox"]:checked {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.filter-option input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.filter-option .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.filter-option .option-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.filter-option .option-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  flex-shrink: 0;
 }
 </style>
