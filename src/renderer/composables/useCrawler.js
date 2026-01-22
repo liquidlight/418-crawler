@@ -246,20 +246,30 @@ export function useCrawler() {
         // Load all uncrawled pages (pending URLs)
         const uncrawledPages = await db.getUncrawledPages()
 
+        console.log(`Found ${uncrawledPages?.length || 0} uncrawled pages`)
+        console.log(`Queue size before: ${crawlerInstance.state.queue.length}`)
+        console.log(`Visited set size before: ${crawlerInstance.state.visited.size}`)
+
         if (uncrawledPages && uncrawledPages.length > 0) {
           // Add pending URLs back to the crawler queue
           let queuedCount = 0
-          uncrawledPages.forEach(page => {
+          const internalUncrawled = uncrawledPages.filter(p => !p.isExternal)
+          console.log(`Internal uncrawled pages: ${internalUncrawled.length}`)
+
+          internalUncrawled.forEach(page => {
             // Remove from visited set so it can be queued again
             crawlerInstance.state.visited.delete(page.url)
             crawlerInstance.state.addToQueue(page.url, page.depth || 0)
             queuedCount++
           })
 
-          console.log(`Re-queued ${queuedCount} pending URLs for processing`)
+          console.log(`Re-queued ${queuedCount} internal pending URLs for processing`)
+          console.log(`Queue size after: ${crawlerInstance.state.queue.length}`)
+          console.log(`Visited set size after: ${crawlerInstance.state.visited.size}`)
         }
 
         isStopping.value = false
+        console.log('Starting crawler...')
         crawlerInstance.start()
       } catch (e) {
         error.value = 'Failed to continue crawl: ' + e.message
