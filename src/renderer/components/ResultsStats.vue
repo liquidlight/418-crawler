@@ -34,27 +34,27 @@
         </div>
       </div>
       <div class="status-code-list">
-        <div class="status-code-row">
+        <div class="status-code-row" @click="$emit('filter-status', '1XX')" v-if="getStatusCount('1') > 0">
           <div class="status-code-label"><span class="status-code-dot s1xx"></span> 1XX Informational</div>
           <span class="status-code-count">{{ getStatusCount('1') }}</span>
         </div>
-        <div class="status-code-row">
+        <div class="status-code-row" @click="$emit('filter-status', '2XX')" v-if="getStatusCount('2') > 0">
           <div class="status-code-label"><span class="status-code-dot s2xx"></span> 2XX Success</div>
           <span class="status-code-count">{{ getStatusCount('2') }}</span>
         </div>
-        <div class="status-code-row">
+        <div class="status-code-row" @click="$emit('filter-status', '3XX')" v-if="getStatusCount('3') > 0">
           <div class="status-code-label"><span class="status-code-dot s3xx"></span> 3XX Redirect</div>
           <span class="status-code-count">{{ getStatusCount('3') }}</span>
         </div>
-        <div class="status-code-row">
+        <div class="status-code-row" @click="$emit('filter-status', '4XX')" v-if="getStatusCount('4') > 0">
           <div class="status-code-label"><span class="status-code-dot s4xx"></span> 4XX Client Error</div>
           <span class="status-code-count">{{ getStatusCount('4') }}</span>
         </div>
-        <div class="status-code-row">
+        <div class="status-code-row" @click="$emit('filter-status', '5XX')" v-if="getStatusCount('5') > 0">
           <div class="status-code-label"><span class="status-code-dot s5xx"></span> 5XX Server Error</div>
           <span class="status-code-count">{{ getStatusCount('5') }}</span>
         </div>
-        <div class="status-code-row">
+        <div class="status-code-row" @click="$emit('filter-status', 'pending')" v-if="pendingCount > 0">
           <div class="status-code-label"><span class="status-code-dot pending"></span> Pending</div>
           <span class="status-code-count">{{ pendingCount }}</span>
         </div>
@@ -70,13 +70,13 @@
         </div>
       </div>
       <div class="file-type-list">
-        <div v-for="type in fileTypeList" :key="type" class="file-type-row">
+        <div v-for="type in fileTypeList" :key="type" class="file-type-row" @click="$emit('filter-filetype', type)">
           <div class="file-type-label"><span class="file-type-icon" :class="type">{{ getFileTypeAbbr(type) }}</span> {{ getFileTypeLabel(type) }}</div>
           <span class="file-type-count">{{ getTypeCount(type) }}</span>
         </div>
         <div v-if="fileTypeList.length === 0" class="no-file-types">No file types detected</div>
       </div>
-      <div class="external-section">
+      <div class="external-section" @click="$emit('filter-external')">
         <div class="card-title" style="margin-bottom: 12px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           External Links
@@ -97,6 +97,7 @@ export default {
   props: {
     pages: Array
   },
+  emits: ['filter-status', 'filter-filetype', 'filter-external'],
   setup(props) {
     const externalLinkCount = computed(() => {
       return props.pages.reduce((sum, page) => sum + (page.externalLinks?.length || 0), 0)
@@ -338,10 +339,12 @@ export default {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
+  user-select: none;
 }
 
 .status-code-row:hover {
   background: var(--bg-elevated);
+  border-color: var(--accent-blue);
 }
 
 .status-code-label {
@@ -385,6 +388,14 @@ export default {
   padding: 8px 12px;
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.file-type-row:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent-blue);
 }
 
 .file-type-label {
@@ -432,5 +443,12 @@ export default {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--border-subtle);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.external-section:hover {
+  opacity: 0.8;
 }
 </style>

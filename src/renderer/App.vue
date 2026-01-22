@@ -189,7 +189,12 @@
           </div>
 
           <!-- Total Pages / Status Distribution -->
-          <ResultsStats :pages="pages" />
+          <ResultsStats
+            :pages="pages"
+            @filter-status="handleFilterStatus"
+            @filter-filetype="handleFilterFileType"
+            @filter-external="handleFilterExternal"
+          />
         </div>
 
         <!-- Results Tab -->
@@ -819,6 +824,21 @@ export default {
       keywordFilter.value = ''
     }
 
+    function handleFilterStatus(code) {
+      statusFilter.value = [code]
+      activeTab.value = 'results'
+    }
+
+    function handleFilterFileType(type) {
+      fileTypeFilter.value = [type]
+      activeTab.value = 'results'
+    }
+
+    function handleFilterExternal() {
+      externalFilter.value = ['external']
+      activeTab.value = 'results'
+    }
+
     function clearError() {
       error.value = null
     }
@@ -956,6 +976,9 @@ export default {
       handleLinkTypeFilterClick,
       handleExportFiltered,
       handleClearFilters,
+      handleFilterStatus,
+      handleFilterFileType,
+      handleFilterExternal,
       clearError
     }
   }
