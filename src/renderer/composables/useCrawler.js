@@ -270,11 +270,18 @@ export function useCrawler() {
           console.log(`Re-queued ${queuedCount} internal pending URLs for processing`)
           console.log(`Queue size after: ${crawlerInstance.state.queue.length}`)
           console.log(`Visited set size after: ${crawlerInstance.state.visited.size}`)
+
+          // Ensure crawler state is reset before restarting
+          console.log(`Crawler isActive before restart: ${crawlerInstance.state.isActive}`)
+          if (crawlerInstance.state.isActive) {
+            console.warn('Crawler isActive is true, resetting to false')
+            crawlerInstance.state.isActive = false
+          }
         }
 
         isStopping.value = false
         console.log('Starting crawler...')
-        crawlerInstance.start()
+        await crawlerInstance.start()
       } catch (e) {
         error.value = 'Failed to continue crawl: ' + e.message
         console.error('Error in continueAnyway:', e)
