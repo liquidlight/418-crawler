@@ -92,8 +92,8 @@
 
         <div class="crawl-input-section">
           <div class="input-wrapper">
-            <input v-model="crawlState.rootUrl" type="text" class="url-input" placeholder="https://example.com" @keyup.enter="handleStartCrawl(crawlState.rootUrl)">
-            <button @click="handleStartCrawl(crawlState.rootUrl)" class="btn btn-primary btn-lg">
+            <input v-model="landingPageUrl" type="text" class="url-input" placeholder="https://example.com" @keyup.enter="handleStartCrawl(landingPageUrl)">
+            <button @click="handleStartCrawl(landingPageUrl)" class="btn btn-primary btn-lg">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
               Start Crawl
             </button>
@@ -360,6 +360,7 @@ export default {
     const externalFilter = ref(null) // null = all, true = external only, false = internal only
     const keywordFilter = ref('')
     const activeTab = ref('overview')
+    const landingPageUrl = ref('')
 
     const savedCrawls = computed(() => crawler.getSavedCrawls())
 
@@ -720,6 +721,7 @@ export default {
       externalFilter,
       keywordFilter,
       activeTab,
+      landingPageUrl,
       savedCrawls,
       statusCodeList,
       getStatusCount,
