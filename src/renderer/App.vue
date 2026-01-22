@@ -9,18 +9,18 @@
           <div class="logo-text">418 <span>Web Crawler</span></div>
         </div>
 
-        <div class="url-group">
+        <div v-if="crawlState.rootUrl" class="url-group">
           <CrawlerInput
             :url="crawlState.rootUrl"
             :disabled="crawlState.isActive"
             @crawl="handleStartCrawl"
             :input-only="true"
           />
-          <button v-if="crawlState.rootUrl" @click="handleStartCrawl" class="btn btn-primary">
+          <button @click="handleStartCrawl" class="btn btn-primary">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             Crawl
           </button>
-          <button v-if="crawlState.rootUrl" @click="handleStopCrawl" class="btn btn-danger">
+          <button @click="handleStopCrawl" class="btn btn-danger">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg>
             Stop
           </button>
