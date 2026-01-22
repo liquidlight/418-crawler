@@ -200,7 +200,7 @@
             <div class="filter-divider"></div>
 
             <!-- Status Code Dropdown -->
-            <div class="filter-dropdown" :class="{ open: openDropdown === 'status' }" @click.outside="openDropdown = null">
+            <div class="filter-dropdown" :class="{ open: openDropdown === 'status' }">
               <button class="filter-trigger" :class="{ 'has-selection': statusFilter.length > 0 }" @click="openDropdown = openDropdown === 'status' ? null : 'status'">
                 <span class="label">Status Code</span>
                 <span v-if="statusFilter.length > 0" class="selection-count">{{ statusFilter.length }}</span>
@@ -223,7 +223,7 @@
             </div>
 
             <!-- Link Type Dropdown -->
-            <div class="filter-dropdown" :class="{ open: openDropdown === 'external' }" @click.outside="openDropdown = null">
+            <div class="filter-dropdown" :class="{ open: openDropdown === 'external' }">
               <button class="filter-trigger" :class="{ 'has-selection': externalFilter.length > 0 }" @click="openDropdown = openDropdown === 'external' ? null : 'external'">
                 <span class="label">Link Type</span>
                 <span v-if="externalFilter.length > 0" class="selection-count">{{ externalFilter.length }}</span>
@@ -252,7 +252,7 @@
             </div>
 
             <!-- File Type Dropdown -->
-            <div class="filter-dropdown" :class="{ open: openDropdown === 'filetype' }" @click.outside="openDropdown = null">
+            <div class="filter-dropdown" :class="{ open: openDropdown === 'filetype' }">
               <button class="filter-trigger" :class="{ 'has-selection': fileTypeFilter.length > 0 }" @click="openDropdown = openDropdown === 'filetype' ? null : 'filetype'">
                 <span class="label">File Type</span>
                 <span v-if="fileTypeFilter.length > 0" class="selection-count">{{ fileTypeFilter.length }}</span>
@@ -597,6 +597,14 @@ export default {
         error.value = 'Failed to initialize: ' + e.message
         console.error('Initialization error:', e)
       }
+
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', (e) => {
+        const filtersRow = document.querySelector('.filters-row')
+        if (filtersRow && !filtersRow.contains(e.target)) {
+          openDropdown.value = null
+        }
+      })
     })
 
     async function handleStartCrawl(url) {
