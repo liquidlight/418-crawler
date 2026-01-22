@@ -1736,7 +1736,7 @@ tr:hover .url-text { color: var(--accent-blue); }
 .previous-section {
   border-top: 1px solid var(--border-subtle);
   padding: 1.5rem;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   flex: 1;
   overflow-y: auto;
   min-height: 0;
