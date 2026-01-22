@@ -13,10 +13,10 @@
           <CrawlerInput
             :url="crawlState.rootUrl"
             :disabled="crawlState.isActive"
-            @crawl="handleStartCrawl"
+            @crawl="handleStartCrawl($event)"
             :input-only="true"
           />
-          <button @click="handleStartCrawl" class="btn btn-primary">
+          <button @click="handleStartCrawl(crawlState.rootUrl)" class="btn btn-primary">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             Crawl
           </button>
