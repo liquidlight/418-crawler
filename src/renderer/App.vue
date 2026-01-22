@@ -16,11 +16,15 @@
             @crawl="handleStartCrawl($event)"
             :input-only="true"
           />
-          <button @click="handleStartCrawl(crawlState.rootUrl)" class="btn btn-primary">
+          <button v-if="!crawlState.isActive && pendingCount > 0" @click="handleContinueAnyway" class="btn btn-primary">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v18l15-9z"/></svg>
+            Continue ({{ pendingCount }})
+          </button>
+          <button v-else-if="!crawlState.isActive" @click="handleStartCrawl(crawlState.rootUrl)" class="btn btn-primary">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             Crawl
           </button>
-          <button @click="handleStopCrawl" class="btn btn-danger">
+          <button v-if="crawlState.isActive" @click="handleStopCrawl" class="btn btn-danger">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg>
             Stop
           </button>
@@ -63,10 +67,6 @@
           <div class="stat-pill error" v-if="errorCount > 0" @click="showErrorModal = true" style="cursor: pointer;">
             <span class="value">{{ errorCount }}</span>
             <span class="label">Errors</span>
-          </div>
-          <div v-for="type in fileTypeList" :key="type" class="stat-pill">
-            <span class="value">{{ getFileTypeCount(type) }}</span>
-            <span class="label">{{ getFileTypeLabel(type) }}</span>
           </div>
           <button v-if="crawlState.isActive && !crawlState.isPaused" @click="handlePauseCrawl" class="btn btn-ghost">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
