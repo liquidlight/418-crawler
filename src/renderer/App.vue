@@ -28,7 +28,7 @@
 
         <div class="header-actions">
           <button @click="triggerFileInput" class="btn btn-ghost">Import</button>
-          <button v-if="crawlState.rootUrl" @click="handleExport" class="btn btn-primary">Export</button>
+          <button v-if="crawlState.rootUrl" @click="handleExportClick" class="btn btn-primary">Export</button>
           <button v-if="crawlState.rootUrl" @click="handleResetCrawl" class="btn btn-ghost">Reset</button>
         </div>
       </div>
@@ -683,6 +683,16 @@ export default {
       }
     }
 
+    async function handleExportClick() {
+      // Check if any filters are active
+      const hasFilters = statusFilter.value.length > 0 || externalFilter.value.length > 0 || fileTypeFilter.value.length > 0
+      if (hasFilters) {
+        return handleExportFiltered()
+      } else {
+        return handleExport()
+      }
+    }
+
     async function handleExport() {
       try {
         const result = await crawler.saveToFile()
@@ -763,12 +773,16 @@ export default {
     async function handleExportFiltered() {
       try {
         let filterDesc = ''
-        if (statusFilter.value) {
-          filterDesc += statusFilter.value
+        if (statusFilter.value.length > 0) {
+          filterDesc += statusFilter.value.join(',')
         }
-        if (externalFilter.value !== null) {
+        if (externalFilter.value.length > 0) {
           if (filterDesc) filterDesc += '-'
-          filterDesc += externalFilter.value ? 'external' : 'internal'
+          filterDesc += externalFilter.value.includes('external') ? 'external' : 'internal'
+        }
+        if (fileTypeFilter.value.length > 0) {
+          if (filterDesc) filterDesc += '-'
+          filterDesc += fileTypeFilter.value.join(',')
         }
         const result = await crawler.exportFilteredResults(filteredPages.value, filterDesc)
         if (result.success) {
@@ -921,6 +935,7 @@ export default {
       handleContinueAnyway,
       handleSaveProgress,
       handleResetCrawl,
+      handleExportClick,
       handleExport,
       handleImport,
       triggerFileInput,
