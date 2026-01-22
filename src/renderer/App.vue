@@ -1536,13 +1536,14 @@ export default {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   font-weight: 600;
+  color: white;
 }
 
-.status-badge.s2xx { background: var(--accent-green-soft); color: var(--accent-green); }
-.status-badge.s3xx { background: var(--accent-amber-soft); color: var(--accent-amber); }
-.status-badge.s4xx { background: var(--accent-red-soft); color: var(--accent-red); }
-.status-badge.s5xx { background: var(--accent-purple-soft); color: var(--accent-purple); }
-.status-badge.s1xx { background: var(--accent-slate-soft); color: var(--accent-slate); }
+.status-badge.s2xx { background: var(--accent-green); }
+.status-badge.s3xx { background: var(--accent-amber); }
+.status-badge.s4xx { background: var(--accent-red); }
+.status-badge.s5xx { background: var(--accent-purple); }
+.status-badge.s1xx { background: var(--accent-slate); }
 
 .type-badge {
   display: inline-flex;
