@@ -288,6 +288,7 @@
                 <tr>
                   <th style="width: 65px;">Status</th>
                   <th style="width: 85px;">Type</th>
+                  <th style="width: 75px;">File Type</th>
                   <th class="sortable">URL</th>
                   <th class="sortable">Title</th>
                   <th class="sortable" style="width: 90px;">Time ↓</th>
@@ -298,6 +299,7 @@
                 <tr v-for="page in filteredPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 400 }" @click="selectedPage = page">
                   <td><span class="status-badge" :class="getStatusBadgeClass(page.statusCode)">{{ page.statusCode || 'pending' }}</span></td>
                   <td><span class="type-badge" :class="page.isExternal ? 'external' : 'internal'">{{ page.isExternal ? 'External' : 'Internal' }}</span></td>
+                  <td><span class="file-type-badge">{{ getFileTypeLabel(getFileType(page.url, page.contentType || '')) }}</span></td>
                   <td class="url-cell"><span class="url-text">{{ page.url }}</span></td>
                   <td class="title-cell"><span class="title-text">{{ page.title || 'No title' }}</span></td>
                   <td class="time-cell">{{ page.responseTime }}ms<div class="time-bar"><div class="time-bar-fill" :class="getTimeBarClass(page.responseTime)" :style="{ width: (page.responseTime / 1000) * 100 + '%' }"></div></div></td>
@@ -1558,6 +1560,18 @@ export default {
 
 .type-badge.internal { background: var(--accent-blue-soft); color: var(--accent-blue); }
 .type-badge.external { background: var(--accent-purple-soft); color: var(--accent-purple); }
+
+.file-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--accent-slate-soft);
+  color: var(--accent-slate);
+  white-space: nowrap;
+}
 
 .url-cell { max-width: 300px; }
 
