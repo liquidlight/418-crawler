@@ -70,18 +70,11 @@
         </div>
       </div>
       <div class="file-type-list">
-        <div class="file-type-row">
-          <div class="file-type-label"><span class="file-type-icon html">HTML</span> HTML Pages</div>
-          <span class="file-type-count">{{ getTypeCount('html') }}</span>
+        <div v-for="type in fileTypeList" :key="type" class="file-type-row">
+          <div class="file-type-label"><span class="file-type-icon" :class="type">{{ getFileTypeAbbr(type) }}</span> {{ getFileTypeLabel(type) }}</div>
+          <span class="file-type-count">{{ getTypeCount(type) }}</span>
         </div>
-        <div class="file-type-row">
-          <div class="file-type-label"><span class="file-type-icon pdf">PDF</span> PDF Documents</div>
-          <span class="file-type-count">{{ getTypeCount('pdf') }}</span>
-        </div>
-        <div class="file-type-row">
-          <div class="file-type-label"><span class="file-type-icon other">OTH</span> Other Files</div>
-          <span class="file-type-count">{{ getTypeCount('other') }}</span>
-        </div>
+        <div v-if="fileTypeList.length === 0" class="no-file-types">No file types detected</div>
       </div>
       <div class="external-section">
         <div class="card-title" style="margin-bottom: 12px;">
@@ -97,6 +90,7 @@
 
 <script>
 import { computed } from 'vue'
+import { getFileType } from '../utils/url.js'
 
 export default {
   name: 'ResultsStats',
@@ -110,6 +104,17 @@ export default {
 
     const pendingCount = computed(() => {
       return props.pages.filter(p => !p.isCrawled).length
+    })
+
+    const fileTypeList = computed(() => {
+      const types = new Set()
+      props.pages.forEach(page => {
+        if (page.isCrawled) {
+          const type = getFileType(page.url, page.contentType || '')
+          if (type) types.add(type)
+        }
+      })
+      return Array.from(types).sort()
     })
 
     const statusDistribution = computed(() => {
@@ -154,27 +159,44 @@ export default {
 
     function getTypeCount(type) {
       return props.pages.filter(p => {
-        const contentType = p.contentType ? p.contentType.toLowerCase() : ''
-        const mainType = contentType.split(';')[0].trim()
-
-        if (type === 'html') {
-          return mainType === 'text/html' || mainType === 'application/xhtml+xml'
-        } else if (type === 'pdf') {
-          return mainType === 'application/pdf'
-        } else if (type === 'other') {
-          return mainType && mainType !== 'text/html' && mainType !== 'application/xhtml+xml' && mainType !== 'application/pdf'
-        }
-        return false
+        return p.isCrawled && getFileType(p.url, p.contentType || '') === type
       }).length
+    }
+
+    function getFileTypeLabel(type) {
+      const labels = {
+        html: 'HTML Pages',
+        pdf: 'PDF Documents',
+        css: 'CSS Files',
+        js: 'JavaScript Files',
+        image: 'Images',
+        other: 'Other Files'
+      }
+      return labels[type] || type
+    }
+
+    function getFileTypeAbbr(type) {
+      const abbrs = {
+        html: 'HTML',
+        pdf: 'PDF',
+        css: 'CSS',
+        js: 'JS',
+        image: 'IMG',
+        other: 'OTH'
+      }
+      return abbrs[type] || type.toUpperCase()
     }
 
     return {
       externalLinkCount,
       pendingCount,
       statusDistribution,
+      fileTypeList,
       getStatusWidth,
       getStatusCount,
-      getTypeCount
+      getTypeCount,
+      getFileTypeLabel,
+      getFileTypeAbbr
     }
   }
 }
@@ -387,7 +409,17 @@ export default {
 
 .file-type-icon.html { background: #fef3c7; color: #b45309; }
 .file-type-icon.pdf { background: #fee2e2; color: #dc2626; }
+.file-type-icon.css { background: #dbeafe; color: #0369a1; }
+.file-type-icon.js { background: #fef08a; color: #9a3412; }
+.file-type-icon.image { background: #f0fdf4; color: #166534; }
 .file-type-icon.other { background: #e0e7ff; color: #4f46e5; }
+
+.no-file-types {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
 
 .file-type-count {
   font-family: 'JetBrains Mono', monospace;
