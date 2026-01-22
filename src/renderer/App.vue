@@ -36,7 +36,7 @@
       <!-- Header Bottom (Progress & Stats) -->
       <div v-if="crawlState.rootUrl" class="header-bottom">
         <div class="progress-inline">
-          <span class="pulse" v-if="crawlState.isActive"></span>
+          <span class="pulse" :class="crawlStatusClass" v-if="crawlState.isActive || (crawlState.stats.pagesCrawled > 0 && !crawlState.isActive)"></span>
           <div class="progress-info">
             <div class="progress-top">
               <span class="progress-label">{{ statusLabel }}</span>
@@ -148,9 +148,9 @@
             <button class="tab" :class="{ active: activeTab === 'queue' }" @click="activeTab = 'queue'">Pending <span class="tab-count">{{ pendingCount }}</span></button>
             <button class="tab" :class="{ active: activeTab === 'log' }" @click="activeTab = 'log'">Log</button>
           </div>
-          <span class="realtime-badge" v-if="crawlState.isActive">
+          <span class="realtime-badge" :class="crawlStatusClass" v-if="crawlState.isActive || (crawlState.stats.pagesCrawled > 0 && !crawlState.isActive)">
             <span class="realtime-dot"></span>
-            Live
+            {{ crawlStatus === 'complete' ? 'Complete' : (crawlStatus === 'paused' ? 'Paused' : 'Live') }}
           </span>
         </div>
 
@@ -553,6 +553,21 @@ export default {
       return pagesCrawled / seconds
     })
 
+    const crawlStatus = computed(() => {
+      const state = crawler.crawlState.value
+      if (state.isActive && state.isPaused) return 'paused'
+      if (state.isActive) return 'live'
+      if (state.stats.pagesCrawled > 0) return 'complete'
+      return 'idle'
+    })
+
+    const crawlStatusClass = computed(() => {
+      const status = crawlStatus.value
+      if (status === 'paused') return { paused: true }
+      if (status === 'complete') return { complete: true }
+      return {}
+    })
+
     const statusLabel = computed(() => {
       const state = crawler.crawlState.value
       if (state.isActive && state.isPaused) return 'Paused'
@@ -889,6 +904,8 @@ export default {
       crawlSpeed,
       statusLabel,
       statusColorClass,
+      crawlStatus,
+      crawlStatusClass,
       estimatedRemaining,
       isBackoffMaxReached: crawler.isBackoffMaxReached,
       formatTime,
@@ -1051,6 +1068,18 @@ export default {
   border-radius: 50%;
   animation: pulse 1.5s infinite;
   box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+.pulse.paused {
+  background: var(--accent-orange);
+  animation: none;
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.2);
+}
+
+.pulse.complete {
+  background: var(--accent-blue);
+  animation: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 @keyframes pulse {
@@ -1233,12 +1262,32 @@ export default {
   color: var(--accent-green);
 }
 
+.realtime-badge.paused {
+  background: rgba(234, 88, 12, 0.1);
+  color: var(--accent-orange);
+}
+
+.realtime-badge.complete {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--accent-blue);
+}
+
 .realtime-dot {
   width: 6px;
   height: 6px;
   background: var(--accent-green);
   border-radius: 50%;
   animation: pulse 1.5s infinite;
+}
+
+.realtime-badge.paused .realtime-dot {
+  background: var(--accent-orange);
+  animation: none;
+}
+
+.realtime-badge.complete .realtime-dot {
+  background: var(--accent-blue);
+  animation: none;
 }
 
 /* Overview Content */
@@ -2048,8 +2097,8 @@ tr:hover .url-text { color: var(--accent-blue); }
 .filter-option input[type="checkbox"]:checked::after {
   content: '';
   position: absolute;
-  left: 4px;
-  top: 1px;
+  left: 3px;
+  top: -1px;
   width: 5px;
   height: 9px;
   border: solid white;
