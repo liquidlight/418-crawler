@@ -203,7 +203,9 @@
             <div class="filter-dropdown" :class="{ open: openDropdown === 'status' }">
               <button class="filter-trigger" :class="{ 'has-selection': statusFilter.length > 0 }" @click="openDropdown = openDropdown === 'status' ? null : 'status'">
                 <span class="label">Status Code</span>
-                <span v-if="statusFilter.length > 0" class="selection-count">{{ statusFilter.length }}</span>
+                <div v-if="statusFilter.length > 0" class="filter-pills">
+                  <span v-for="code in statusFilter" :key="code" class="filter-pill">{{ code }}</span>
+                </div>
                 <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
               <div class="filter-panel">
@@ -226,7 +228,9 @@
             <div class="filter-dropdown" :class="{ open: openDropdown === 'external' }">
               <button class="filter-trigger" :class="{ 'has-selection': externalFilter.length > 0 }" @click="openDropdown = openDropdown === 'external' ? null : 'external'">
                 <span class="label">Link Type</span>
-                <span v-if="externalFilter.length > 0" class="selection-count">{{ externalFilter.length }}</span>
+                <div v-if="externalFilter.length > 0" class="filter-pills">
+                  <span v-for="type in externalFilter" :key="type" class="filter-pill">{{ type === 'internal' ? 'Internal' : 'External' }}</span>
+                </div>
                 <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
               <div class="filter-panel">
@@ -255,7 +259,9 @@
             <div class="filter-dropdown" :class="{ open: openDropdown === 'filetype' }">
               <button class="filter-trigger" :class="{ 'has-selection': fileTypeFilter.length > 0 }" @click="openDropdown = openDropdown === 'filetype' ? null : 'filetype'">
                 <span class="label">File Type</span>
-                <span v-if="fileTypeFilter.length > 0" class="selection-count">{{ fileTypeFilter.length }}</span>
+                <div v-if="fileTypeFilter.length > 0" class="filter-pills">
+                  <span v-for="type in fileTypeFilter" :key="type" class="filter-pill">{{ getFileTypeLabel(type) }}</span>
+                </div>
                 <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
               <div class="filter-panel">
@@ -2018,6 +2024,26 @@ tr:hover .url-text { color: var(--accent-blue); }
   border-radius: 10px;
   font-size: 10px;
   font-weight: 600;
+  flex-shrink: 0;
+}
+
+.filter-pills {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  max-width: 200px;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--accent-blue);
+  color: white;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
