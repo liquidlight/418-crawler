@@ -225,12 +225,46 @@ export function useCrawler() {
   }
 
   /**
-   * Continue crawling despite backoff max being reached
+   * Continue crawling despite backoff max being reached, or resume processing pending URLs
    */
   async function continueAnyway() {
-    if (crawlerInstance && isBackoffMaxReached.value) {
+    if (!crawlerInstance) {
+      error.value = 'No crawler instance available'
+      return
+    }
+
+    // If we're in backoff mode, cancel it and resume
+    if (isBackoffMaxReached.value) {
       crawlerInstance.backoffManager.cancelBackoff()
       await resumeCrawl()
+      return
+    }
+
+    // If crawler is not active but has pending URLs, restart it
+    if (!crawlState.value.isActive) {
+      try {
+        // Load all uncrawled pages (pending URLs)
+        const uncrawledPages = await db.getUncrawledPages()
+
+        if (uncrawledPages && uncrawledPages.length > 0) {
+          // Add pending URLs back to the crawler queue
+          let queuedCount = 0
+          uncrawledPages.forEach(page => {
+            // Remove from visited set so it can be queued again
+            crawlerInstance.state.visited.delete(page.url)
+            crawlerInstance.state.addToQueue(page.url, page.depth || 0)
+            queuedCount++
+          })
+
+          console.log(`Re-queued ${queuedCount} pending URLs for processing`)
+        }
+
+        isStopping.value = false
+        crawlerInstance.start()
+      } catch (e) {
+        error.value = 'Failed to continue crawl: ' + e.message
+        console.error('Error in continueAnyway:', e)
+      }
     }
   }
 
