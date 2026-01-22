@@ -295,7 +295,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(page, idx) in filteredPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 400 }" @click="selectedPage = page" v-if="page.isCrawled">
+                <tr v-for="page in filteredPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 400 }" @click="selectedPage = page">
                   <td><span class="status-badge" :class="getStatusBadgeClass(page.statusCode)">{{ page.statusCode || 'pending' }}</span></td>
                   <td><span class="type-badge" :class="page.isExternal ? 'external' : 'internal'">{{ page.isExternal ? 'External' : 'Internal' }}</span></td>
                   <td class="url-cell"><span class="url-text">{{ page.url }}</span></td>
