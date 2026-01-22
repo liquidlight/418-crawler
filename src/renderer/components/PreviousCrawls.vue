@@ -203,7 +203,7 @@ function clearAllCrawls() {
 .crawl-card {
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
-  padding: 16px 20px;
+  padding: 12px 16px;
   border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;

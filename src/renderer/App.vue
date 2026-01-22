@@ -828,6 +828,7 @@ export default {
   gap: 12px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border-subtle);
+  justify-content: space-between;
 }
 
 .logo {
@@ -1499,8 +1500,8 @@ tr:hover .url-text { color: var(--accent-blue); }
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
   min-height: 0;
   height: 100%;
@@ -1517,7 +1518,7 @@ tr:hover .url-text { color: var(--accent-blue); }
 .previous-section {
   border-top: 1px solid var(--border-subtle);
   padding: 1.5rem;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   flex: 1;
   overflow-y: auto;
   min-height: 0;
@@ -1652,7 +1653,8 @@ tr:hover .url-text { color: var(--accent-blue); }
   border: 1px solid var(--border-subtle);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   margin-bottom: 40px;
-  max-width: 800px;
+  max-width: 100%;
+  width: 90%;
   margin-left: auto;
   margin-right: auto;
 }
