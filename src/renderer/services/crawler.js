@@ -457,6 +457,7 @@ export class Crawler {
    */
   stop() {
     this.state.isActive = false
+    this.emitProgress()
   }
 
   /**
