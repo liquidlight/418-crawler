@@ -50,18 +50,18 @@
         <div class="stats-row">
           <div class="stat-pill">
             <span class="value">{{ crawlState.stats.pagesFound }}</span>
-            <span class="label">Found</span>
+            <span class="label">Discovered</span>
           </div>
           <div class="stat-pill">
             <span class="value">{{ crawlState.stats.pagesCrawled }}</span>
-            <span class="label">Crawled</span>
+            <span class="label">Fetched</span>
           </div>
           <div class="stat-pill">
             <span class="value">{{ pendingCount }}</span>
             <span class="label">Pending</span>
           </div>
-          <div class="stat-pill error" v-if="crawlState.stats.errors > 0" @click="showErrorModal = true" style="cursor: pointer;">
-            <span class="value">{{ crawlState.stats.errors }}</span>
+          <div class="stat-pill error" v-if="errorCount > 0" @click="showErrorModal = true" style="cursor: pointer;">
+            <span class="value">{{ errorCount }}</span>
             <span class="label">Errors</span>
           </div>
           <div v-for="type in fileTypeList" :key="type" class="stat-pill">
@@ -482,6 +482,10 @@ export default {
 
     const internalCount = computed(() =>
       crawler.pages.value.filter(p => !p.isExternal).length
+    )
+
+    const errorCount = computed(() =>
+      crawler.pages.value.filter(p => p.statusCode && p.statusCode >= 400).length
     )
 
     const filteredPages = computed(() => {
@@ -915,6 +919,7 @@ export default {
       pendingCount,
       externalCount,
       internalCount,
+      errorCount,
       queueUrls: crawler.queueUrls,
       progressPercent,
       crawlSpeed,
