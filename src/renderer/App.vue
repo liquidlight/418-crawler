@@ -64,6 +64,10 @@
             <span class="value">{{ crawlState.stats.errors }}</span>
             <span class="label">Errors</span>
           </div>
+          <div v-for="type in fileTypeList" :key="type" class="stat-pill">
+            <span class="value">{{ getFileTypeCount(type) }}</span>
+            <span class="label">{{ getFileTypeLabel(type) }}</span>
+          </div>
           <button v-if="crawlState.isActive && !crawlState.isPaused" @click="handlePauseCrawl" class="btn btn-ghost">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
             Pause
