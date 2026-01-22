@@ -938,6 +938,7 @@ export default {
       statusCodeList,
       fileTypeList,
       getStatusCount,
+      getFileType,
       getFileTypeCount,
       getFileTypeLabel,
       getStatusCodeColor,
