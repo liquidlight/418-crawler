@@ -336,10 +336,12 @@ export function useCrawler() {
       // Clear current crawl
       await db.clearAll()
 
-      // Restore pages and state
+      // Restore pages and state in parallel batches
       if (data.pages && Array.isArray(data.pages)) {
-        for (const page of data.pages) {
-          await db.savePage(page)
+        const batchSize = 100
+        for (let i = 0; i < data.pages.length; i += batchSize) {
+          const batch = data.pages.slice(i, i + batchSize)
+          await Promise.all(batch.map(page => db.savePage(page)))
         }
       }
 
@@ -370,10 +372,12 @@ export function useCrawler() {
       // Clear current crawl
       await db.clearAll()
 
-      // Restore pages and state
+      // Restore pages and state in parallel batches
       if (data.pages && Array.isArray(data.pages)) {
-        for (const page of data.pages) {
-          await db.savePage(page)
+        const batchSize = 100
+        for (let i = 0; i < data.pages.length; i += batchSize) {
+          const batch = data.pages.slice(i, i + batchSize)
+          await Promise.all(batch.map(page => db.savePage(page)))
         }
       }
 
