@@ -992,7 +992,6 @@ export default {
   flex: 1;
   overflow: hidden;
   width: 100%;
-  background: var(--bg-secondary);
 }
 
 .content-card {
