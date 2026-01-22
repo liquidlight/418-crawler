@@ -295,17 +295,14 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(page, idx) in filteredPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 400 }">
+                <tr v-for="(page, idx) in filteredPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 400 }" @click="selectedPage = page" v-if="page.isCrawled">
                   <td><span class="status-badge" :class="getStatusBadgeClass(page.statusCode)">{{ page.statusCode || 'pending' }}</span></td>
                   <td><span class="type-badge" :class="page.isExternal ? 'external' : 'internal'">{{ page.isExternal ? 'External' : 'Internal' }}</span></td>
                   <td class="url-cell"><span class="url-text">{{ page.url }}</span></td>
                   <td class="title-cell"><span class="title-text">{{ page.title || 'No title' }}</span></td>
                   <td class="time-cell">{{ page.responseTime }}ms<div class="time-bar"><div class="time-bar-fill" :class="getTimeBarClass(page.responseTime)" :style="{ width: (page.responseTime / 1000) * 100 + '%' }"></div></div></td>
                   <td><div class="row-actions">
-                    <button class="action-btn" @click="selectedPage = page" v-if="page.isCrawled" title="View details">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                    <button class="action-btn" @click="openExternal(page.url)" title="Open in browser">
+                    <button class="action-btn" @click.stop="openExternal(page.url)" title="Open in browser">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     </button>
                   </div></td>
@@ -345,11 +342,11 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(page, idx) in filteredPendingPages" :key="page.url">
+                <tr v-for="(page, idx) in filteredPendingPages" :key="page.url" @click="openExternal(page.url)">
                   <td><span class="status-badge">{{ idx + 1 }}</span></td>
                   <td class="url-cell"><span class="url-text">{{ page.url }}</span></td>
                   <td><div class="row-actions">
-                    <button class="action-btn" @click="openExternal(page.url)" title="Open in browser">
+                    <button class="action-btn" @click.stop="openExternal(page.url)" title="Open in browser">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     </button>
                   </div></td>
