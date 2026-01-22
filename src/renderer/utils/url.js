@@ -25,6 +25,10 @@ export function normalizeUrl(url, baseUrl = null) {
     if (urlStr.startsWith('//')) {
       urlStr = 'https:' + urlStr
     }
+    // Upgrade http:// to https:// for proxy compatibility
+    else if (urlStr.match(/^http:\/\//i)) {
+      urlStr = 'https:' + urlStr.substring(5)
+    }
     // If URL doesn't have protocol and is relative, skip without baseUrl
     else if (!urlStr.match(/^https?:\/\//i)) {
       if (!baseUrl) {

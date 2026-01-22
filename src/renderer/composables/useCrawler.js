@@ -145,6 +145,10 @@ export function useCrawler() {
       if (!testUrl.match(/^https?:\/\//i)) {
         testUrl = 'https://' + testUrl
       }
+      // Upgrade http:// to https:// for proxy compatibility
+      else if (testUrl.match(/^http:\/\//i)) {
+        testUrl = 'https:' + testUrl.substring(5)
+      }
 
       try {
         new URL(testUrl)
