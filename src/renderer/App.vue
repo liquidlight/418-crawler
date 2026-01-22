@@ -319,9 +319,7 @@
               <span class="page-info" v-if="filteredPages.length > 0">Showing 1-{{ Math.min(10, filteredPages.length) }} of {{ filteredPages.length }}</span>
             </div>
             <div class="bulk-actions">
-              <span class="bulk-select">0 selected</span>
               <button class="btn btn-ghost">Export Selected</button>
-              <button class="btn btn-ghost">Ignore</button>
             </div>
           </div>
         </div>
