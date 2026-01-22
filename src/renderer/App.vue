@@ -40,7 +40,6 @@
           <div class="progress-info">
             <div class="progress-top">
               <span class="progress-label">{{ statusLabel }}</span>
-              <span class="progress-count" v-if="crawlState.stats.pagesFound > 0">{{ crawlState.stats.pagesCrawled }} / {{ crawlState.stats.pagesFound }} URLs</span>
             </div>
             <div class="progress-bar">
               <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
