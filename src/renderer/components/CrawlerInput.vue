@@ -146,7 +146,8 @@ label {
 }
 
 .crawler-input-header .url-input {
-  max-width: 420px;
+  max-width: 500px;
+  width: 100%;
   padding: 9px 14px;
 }
 
