@@ -1717,7 +1717,7 @@ tr:hover .url-text { color: var(--accent-blue); }
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
