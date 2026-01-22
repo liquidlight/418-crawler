@@ -431,7 +431,7 @@ export default {
       const types = new Set()
       crawler.pages.value.forEach(page => {
         if (page.isCrawled) {
-          const type = getFileType(page.contentType || '')
+          const type = getFileType(page.url, page.contentType || '')
           if (type) types.add(type)
         }
       })
@@ -452,7 +452,7 @@ export default {
 
     function getFileTypeCount(type) {
       return crawler.pages.value.filter(p => {
-        return p.isCrawled && getFileType(p.contentType || '') === type
+        return p.isCrawled && getFileType(p.url, p.contentType || '') === type
       }).length
     }
 
@@ -513,7 +513,7 @@ export default {
       // Apply file type filter (array)
       if (fileTypeFilter.value.length > 0) {
         result = result.filter(p => {
-          const type = getFileType(p.contentType || '')
+          const type = getFileType(p.url, p.contentType || '')
           return fileTypeFilter.value.includes(type)
         })
       }
