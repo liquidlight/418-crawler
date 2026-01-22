@@ -504,12 +504,11 @@ export default {
         })
       }
 
-      // Apply external/internal filter (array)
+      // Apply external/internal filter (array) - OR logic within the filter
       if (externalFilter.value.length > 0) {
         result = result.filter(p => {
-          if (externalFilter.value.includes('external')) return p.isExternal
-          if (externalFilter.value.includes('internal')) return !p.isExternal
-          return true
+          return (externalFilter.value.includes('external') && p.isExternal) ||
+                 (externalFilter.value.includes('internal') && !p.isExternal)
         })
       }
 
