@@ -218,6 +218,20 @@
                 External <span class="count">{{ externalCount }}</span>
               </button>
             </div>
+            <div class="filter-divider"></div>
+            <div class="filter-group">
+              <button class="filter-chip" :class="{ active: fileTypeFilter === null }" @click="fileTypeFilter = null">All Files</button>
+              <button
+                v-for="type in fileTypeList"
+                :key="type"
+                class="filter-chip"
+                :class="{ active: fileTypeFilter === type }"
+                @click="fileTypeFilter = fileTypeFilter === type ? null : type"
+              >
+                {{ getFileTypeLabel(type) }}
+                <span class="count">{{ getFileTypeCount(type) }}</span>
+              </button>
+            </div>
           </div>
 
           <!-- Results Table -->
@@ -333,6 +347,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useCrawler } from './composables/useCrawler.js'
 import { formatTime } from './utils/timeFormatting.js'
 import { groupStatusCodesByHundreds, getStatusBadgeClass } from './utils/statusBadges.js'
+import { getFileType } from './utils/url.js'
 import CrawlerInput from './components/CrawlerInput.vue'
 import ResultsStats from './components/ResultsStats.vue'
 import PageDetailModal from './components/PageDetailModal.vue'
@@ -357,6 +372,7 @@ export default {
     const showErrorModal = ref(false)
     const statusFilter = ref(null)
     const externalFilter = ref(null) // null = all, true = external only, false = internal only
+    const fileTypeFilter = ref(null) // null = all, or specific type like 'html', 'pdf', 'js', etc.
     const keywordFilter = ref('')
     const activeTab = ref('overview')
     const landingPageUrl = ref('')
@@ -370,6 +386,35 @@ export default {
       const grouped = groupStatusCodesByHundreds(codes)
       return grouped.map(item => item.group)
     })
+
+    const fileTypeList = computed(() => {
+      const types = new Set()
+      crawler.pages.value.forEach(page => {
+        if (page.isCrawled) {
+          const type = getFileType(page.contentType || '')
+          if (type) types.add(type)
+        }
+      })
+      return Array.from(types).sort()
+    })
+
+    function getFileTypeLabel(type) {
+      const labels = {
+        html: 'HTML',
+        pdf: 'PDF',
+        css: 'CSS',
+        js: 'JavaScript',
+        image: 'Images',
+        other: 'Other'
+      }
+      return labels[type] || type
+    }
+
+    function getFileTypeCount(type) {
+      return crawler.pages.value.filter(p => {
+        return p.isCrawled && getFileType(p.contentType || '') === type
+      }).length
+    }
 
     const pendingPages = computed(() =>
       crawler.pages.value.filter(p => !p.isCrawled && !p.isExternal)
@@ -418,6 +463,11 @@ export default {
       // Apply external/internal filter
       if (externalFilter.value !== null) {
         result = result.filter(p => p.isExternal === externalFilter.value)
+      }
+
+      // Apply file type filter
+      if (fileTypeFilter.value) {
+        result = result.filter(p => getFileType(p.contentType || '') === fileTypeFilter.value)
       }
 
       // Apply keyword filter
@@ -718,12 +768,16 @@ export default {
       showErrorModal,
       statusFilter,
       externalFilter,
+      fileTypeFilter,
       keywordFilter,
       activeTab,
       landingPageUrl,
       savedCrawls,
       statusCodeList,
+      fileTypeList,
       getStatusCount,
+      getFileTypeCount,
+      getFileTypeLabel,
       getStatusCodeColor,
       getTimeBarClass,
       getStatusBadgeClass,
