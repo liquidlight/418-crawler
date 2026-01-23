@@ -1,4 +1,4 @@
-import { PROXY_URL, CRAWLER_DEFAULTS } from '../utils/constants.js'
+import { getProxyUrl, CRAWLER_DEFAULTS } from '../utils/constants.js'
 
 /**
  * Fetches a URL via the CORS proxy
@@ -9,6 +9,7 @@ import { PROXY_URL, CRAWLER_DEFAULTS } from '../utils/constants.js'
 export async function fetchUrl(url, options = {}) {
   const startTime = Date.now()
   const timeout = options.timeout || CRAWLER_DEFAULTS.REQUEST_TIMEOUT
+  const proxyUrl = await getProxyUrl()
 
   try {
     // Add a delay if specified
@@ -24,7 +25,7 @@ export async function fetchUrl(url, options = {}) {
     })
 
     // Fetch from proxy
-    const fetchPromise = fetch(PROXY_URL, {
+    const fetchPromise = fetch(proxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, options })
@@ -209,7 +210,8 @@ function isRetryableError(errorMessage) {
  */
 export async function checkProxyHealth() {
   try {
-    const baseUrl = PROXY_URL.replace('/fetch', '')
+    const proxyUrl = await getProxyUrl()
+    const baseUrl = proxyUrl.replace('/fetch', '')
     const response = await fetch(`${baseUrl}/health`, {
       timeout: 5000
     })

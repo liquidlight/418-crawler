@@ -20,6 +20,34 @@ export const FILE_TYPES = {
 // Proxy URL is injected by Vite from environment variable
 // Falls back to localhost:8080 if not set (for Electron/local dev)
 // For Netlify: Uses /.netlify/functions/proxy
+// In Electron, gets the actual proxy port from main process via IPC
+let cachedProxyUrl = null
+
+async function getProxyUrl() {
+  if (cachedProxyUrl) {
+    return cachedProxyUrl
+  }
+
+  try {
+    // Try to get the proxy port from Electron main process
+    if (window.electronAPI && window.electronAPI.getProxyPort) {
+      const port = await window.electronAPI.getProxyPort()
+      cachedProxyUrl = `http://localhost:${port}/fetch`
+      return cachedProxyUrl
+    }
+  } catch (e) {
+    console.warn('Failed to get proxy port from Electron:', e.message)
+  }
+
+  // Fallback to environment variable or default
+  cachedProxyUrl = import.meta.env.VITE_PROXY_URL || 'http://localhost:8080/fetch'
+  return cachedProxyUrl
+}
+
+export { getProxyUrl }
+
+// For backwards compatibility, export a constant that can be used synchronously
+// This defaults to 8080, but should call getProxyUrl() for the actual value
 export const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:8080/fetch'
 
 export const CRAWLER_STATUS = {
