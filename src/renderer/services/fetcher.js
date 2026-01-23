@@ -35,10 +35,11 @@ export async function fetchUrl(url, options = {}) {
 
     if (!proxyResponse.ok) {
       // Handle specific proxy errors gracefully
+      const responseTime = Date.now() - startTime
+
       if (proxyResponse.status === 400) {
         // 400 Bad Request from proxy often means the site is blocking access
         const result = await proxyResponse.json().catch(() => ({}))
-        const responseTime = Date.now() - startTime
         return {
           ok: false,
           status: 403,  // Treat as Forbidden/Blocked
@@ -50,6 +51,22 @@ export async function fetchUrl(url, options = {}) {
           url
         }
       }
+
+      if (proxyResponse.status === 408) {
+        // 408 Request Timeout from proxy - try to get error details
+        const result = await proxyResponse.json().catch(() => ({}))
+        return {
+          ok: false,
+          status: 408,  // Proxy timeout
+          statusText: 'Proxy Timeout',
+          headers: {},
+          data: '',
+          error: result.error || 'Proxy server timeout',
+          responseTime,
+          url
+        }
+      }
+
       throw new Error(`Proxy server error: ${proxyResponse.status} ${proxyResponse.statusText}`)
     }
 
