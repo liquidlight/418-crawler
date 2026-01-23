@@ -302,10 +302,11 @@ export function useCrawler() {
 
           // Also need to reset the discovered URLs in the database that aren't in the pages array yet
           console.log(`Discovered URLs not in pages array: ${requeuingUrls.size - resetCount}`)
+          let addedToArrayCount = 0
           for (const url of requeuingUrls) {
             const inArray = pages.value.some(p => p.url === url)
             if (!inArray) {
-              console.log(`Resetting discovered URL in DB: ${url}`)
+              console.log(`Resetting discovered URL in DB and array: ${url}`)
               // Create a page object for this discovered URL
               const discoveredPage = {
                 url,
@@ -327,11 +328,17 @@ export function useCrawler() {
                 isCrawled: false,
                 isExternal: false,
                 depth: 0,
-                crawledAt: null
+                crawledAt: null,
+                processOrder: ++processOrder // Assign a process order
               }
+              // Save to database
               await db.savePage(discoveredPage)
+              // Also add to pages array so crawler can update it
+              pages.value = [...pages.value, markRaw(discoveredPage)]
+              addedToArrayCount++
             }
           }
+          console.log(`Added ${addedToArrayCount} discovered URLs to pages array`)
 
           console.log(`Re-queued ${queuedCount} internal pending URLs for processing`)
           console.log(`Queue size after: ${crawlerInstance.state.queue.length}`)
@@ -630,8 +637,6 @@ export function useCrawler() {
     }
     // Regular page crawled
     else {
-      console.log(`Processing page: ${page.url}, status: ${page.statusCode}, isCrawled: ${page.isCrawled}`)
-
       // Check if this page already exists in the database (e.g., was discovered before)
       const existingPage = await db.getPage(page.url)
 
@@ -647,23 +652,18 @@ export function useCrawler() {
         page.processOrder = ++processOrder  // Assign order if not already set
       }
 
-      console.log(`Saving page to DB: ${page.url}, isCrawled: ${page.isCrawled}`)
       // Save page to database
       await db.savePage(page)
-      console.log(`Saved page to DB: ${page.url}`)
 
       // Add to pages array - use markRaw to prevent circular references in reactivity
       const existingIndex = pages.value.findIndex(p => p.url === page.url)
-      console.log(`Page exists in array: ${existingIndex >= 0}, index: ${existingIndex}`)
 
       if (existingIndex >= 0) {
         const updated = [...pages.value]
         updated[existingIndex] = markRaw(page)
         pages.value = updated
-        console.log(`Updated page in array at index ${existingIndex}`)
       } else {
         pages.value = [...pages.value, markRaw(page)]
-        console.log(`Added new page to array`)
       }
     }
   }

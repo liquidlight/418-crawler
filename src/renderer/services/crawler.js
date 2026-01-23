@@ -252,15 +252,12 @@ export class Crawler {
 
       // Parse the page
       const page = parsePage(url, response, this.baseDomain, depth)
-      console.log(`[Crawler] Parsed page: ${url}, status: ${page.statusCode}, isCrawled: ${page.isCrawled}`)
 
       // Stage 3 (75%): HTML parsed
       this.pageProgress.set(url, { stage: 3, timestamp: Date.now() })
 
       // Emit page processed event
-      console.log(`[Crawler] Emitting page: ${url}`)
       this.onPageProcessed(page)
-      console.log(`[Crawler] Emitted page: ${url}`)
       this.state.stats.pagesCrawled++
 
       // Stage 4 (100%): Processing complete
