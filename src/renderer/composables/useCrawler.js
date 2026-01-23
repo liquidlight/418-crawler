@@ -589,6 +589,8 @@ export function useCrawler() {
     }
     // Regular page crawled
     else {
+      console.log(`Processing page: ${page.url}, status: ${page.statusCode}, isCrawled: ${page.isCrawled}`)
+
       // Check if this page already exists in the database (e.g., was discovered before)
       const existingPage = await db.getPage(page.url)
 
@@ -604,18 +606,23 @@ export function useCrawler() {
         page.processOrder = ++processOrder  // Assign order if not already set
       }
 
+      console.log(`Saving page to DB: ${page.url}, isCrawled: ${page.isCrawled}`)
       // Save page to database
       await db.savePage(page)
+      console.log(`Saved page to DB: ${page.url}`)
 
       // Add to pages array - use markRaw to prevent circular references in reactivity
       const existingIndex = pages.value.findIndex(p => p.url === page.url)
+      console.log(`Page exists in array: ${existingIndex >= 0}, index: ${existingIndex}`)
 
       if (existingIndex >= 0) {
         const updated = [...pages.value]
         updated[existingIndex] = markRaw(page)
         pages.value = updated
+        console.log(`Updated page in array at index ${existingIndex}`)
       } else {
         pages.value = [...pages.value, markRaw(page)]
+        console.log(`Added new page to array`)
       }
     }
   }
