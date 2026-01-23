@@ -175,8 +175,9 @@ export function useCrawler() {
       // Save initial state
       await db.saveCrawlState(crawlerInstance.getSaveableState())
 
-      // Start auto-save (every 30 seconds)
-      startAutoSave(30000)
+      // Don't auto-save during active crawling - the dataset gets too large for localStorage
+      // Final save happens in handleComplete when crawl finishes
+      // Pages are persisted in the database buffer as they're crawled
 
       // Start crawling
       isStopping.value = false
@@ -355,8 +356,8 @@ export function useCrawler() {
         isStopping.value = false
         console.log('Starting crawler...')
 
-        // Start auto-save if it's not already running
-        startAutoSave(30000)
+        // Don't auto-save during active crawling - dataset gets too large for localStorage
+        // Final save will happen when crawl completes
 
         await crawlerInstance.start()
       } catch (e) {
