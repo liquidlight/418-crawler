@@ -285,6 +285,13 @@ export function useCrawler() {
           })
           pages.value = updatedPages
 
+          // Save the reset pages back to the database to keep in sync
+          for (const page of updatedPages) {
+            if (requeuingUrls.has(page.url)) {
+              await db.savePage(page)
+            }
+          }
+
           console.log(`Re-queued ${queuedCount} internal pending URLs for processing`)
           console.log(`Queue size after: ${crawlerInstance.state.queue.length}`)
           console.log(`Visited set size after: ${crawlerInstance.state.visited.size}`)
