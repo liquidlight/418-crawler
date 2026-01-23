@@ -108,15 +108,12 @@ export function useCrawler() {
       await db.init()
       isInitialized.value = true
 
-      // Load saved crawls list
+      // Load saved crawls list (for manual resumption via Previous Crawls)
       refreshSavedCrawlsList()
 
-      // Try to load previous crawl state
-      const savedState = await db.getCrawlState()
-      if (savedState && savedState.rootUrl) {
-        updateCrawlState(savedState)
-        await loadPages()
-      }
+      // Always start with a fresh state, never auto-restore previous crawl
+      // Users can manually resume from "Previous Crawls" section if desired
+      crawlState.value = { ...DEFAULT_CRAWL_STATE }
     } catch (e) {
       error.value = e.message
       console.error('Failed to initialize crawler:', e)
