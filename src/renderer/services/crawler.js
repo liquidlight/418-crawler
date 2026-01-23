@@ -40,6 +40,10 @@ export class Crawler {
     this.onError = options.onError || (() => {})
     this.onComplete = options.onComplete || (() => {})
 
+    // Track orphaned URL checking to prevent infinite loops
+    this.orphanedCheckAttempts = 0
+    this.maxOrphanedCheckAttempts = 3
+
     // Initialize backoff manager
     this.backoffManager = new BackoffManager({
       enabled: options.enableBackoff !== false,
@@ -67,6 +71,7 @@ export class Crawler {
       return
     }
 
+    this.orphanedCheckAttempts = 0 // Reset counter for new crawl
     this.state.isActive = true
     this.state.startTime = Date.now()
     this.emitProgress()
@@ -87,23 +92,43 @@ export class Crawler {
           // If pagesFound > visited count, there may be URLs we haven't processed yet
           // Always check for orphaned internal URLs before completing
           // These are pages discovered through in-links but never queued for crawling
+          this.orphanedCheckAttempts++
+
+          if (this.orphanedCheckAttempts > this.maxOrphanedCheckAttempts) {
+            console.warn(`Reached max orphaned URL check attempts (${this.maxOrphanedCheckAttempts}). Stopping crawler to prevent infinite loop.`)
+            break
+          }
+
           const orphanedUrls = await this.getOrphanedUrls()
 
           if (orphanedUrls && orphanedUrls.length > 0) {
-            console.log(`Found ${orphanedUrls.length} orphaned internal URLs. Queuing them now...`)
+            console.log(`[Orphaned Check #${this.orphanedCheckAttempts}] Found ${orphanedUrls.length} orphaned internal URLs. Queuing them now...`)
             let queuedCount = 0
+            let skippedCount = 0
             orphanedUrls.forEach(url => {
-              if (!this.state.isVisited(url) && !this.state.queue.some(item => item.url === url)) {
+              // Check both exact URL and normalized version to handle URL format differences
+              const isAlreadyVisited = this.state.isVisited(url)
+              const isInQueue = this.state.queue.some(item => item.url === url)
+
+              if (!isAlreadyVisited && !isInQueue) {
                 this.state.addToQueue(url, 0)
+                this.state.markVisited(url) // Immediately mark as visited to prevent re-queueing
                 console.debug(`Queued orphaned URL: ${url}`)
                 queuedCount++
+              } else {
+                skippedCount++
               }
             })
+
             if (queuedCount > 0) {
+              console.log(`Queued ${queuedCount} orphaned URLs, skipped ${skippedCount}`)
               this.emitProgress()
               continue // Continue crawling newly queued URLs
+            } else {
+              // All orphaned URLs are already visited or queued - we're done
+              console.log(`All ${orphanedUrls.length} orphaned URLs already visited or queued. Crawler complete.`)
+              break
             }
-            // If no new URLs were queued, break the loop to avoid infinite loop
           }
 
           // No orphaned URLs found, check consistency
