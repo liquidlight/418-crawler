@@ -268,8 +268,11 @@ export function useCrawler() {
           })
 
           // Also update the pages in memory to mark them as not crawled
+          let resetCount = 0
           const updatedPages = pages.value.map(page => {
             if (requeuingUrls.has(page.url)) {
+              console.log(`Resetting page in array: ${page.url}`)
+              resetCount++
               return markRaw({
                 ...page,
                 isCrawled: false,
@@ -283,12 +286,50 @@ export function useCrawler() {
             }
             return page
           })
+          console.log(`Reset ${resetCount} pages in memory out of ${pages.value.length} total pages`)
           pages.value = updatedPages
 
           // Save the reset pages back to the database to keep in sync
+          let savedCount = 0
           for (const page of updatedPages) {
             if (requeuingUrls.has(page.url)) {
+              console.log(`Saving reset page to DB: ${page.url}`)
               await db.savePage(page)
+              savedCount++
+            }
+          }
+          console.log(`Saved ${savedCount} reset pages to DB`)
+
+          // Also need to reset the discovered URLs in the database that aren't in the pages array yet
+          console.log(`Discovered URLs not in pages array: ${requeuingUrls.size - resetCount}`)
+          for (const url of requeuingUrls) {
+            const inArray = pages.value.some(p => p.url === url)
+            if (!inArray) {
+              console.log(`Resetting discovered URL in DB: ${url}`)
+              // Create a page object for this discovered URL
+              const discoveredPage = {
+                url,
+                normalizedUrl: url,
+                domain: crawlState.value.baseDomain,
+                statusCode: null,
+                errorMessage: null,
+                title: '',
+                metaDescription: '',
+                h1: '',
+                fileType: 'other',
+                contentType: '',
+                responseTime: 0,
+                size: 0,
+                outLinks: [],
+                inLinks: [],
+                externalLinks: [],
+                assets: [],
+                isCrawled: false,
+                isExternal: false,
+                depth: 0,
+                crawledAt: null
+              }
+              await db.savePage(discoveredPage)
             }
           }
 
