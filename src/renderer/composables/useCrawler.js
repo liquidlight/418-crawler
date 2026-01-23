@@ -257,12 +257,33 @@ export function useCrawler() {
           const internalUncrawled = uncrawledPages.filter(p => !p.isExternal)
           console.log(`Internal uncrawled pages: ${internalUncrawled.length}`)
 
+          // Build a set of URLs being re-queued for quick lookup
+          const requeuingUrls = new Set(internalUncrawled.map(p => p.url))
+
           internalUncrawled.forEach(page => {
             // Remove from visited set so it can be queued again
             crawlerInstance.state.visited.delete(page.url)
             crawlerInstance.state.addToQueue(page.url, page.depth || 0)
             queuedCount++
           })
+
+          // Also update the pages in memory to mark them as not crawled
+          const updatedPages = pages.value.map(page => {
+            if (requeuingUrls.has(page.url)) {
+              return markRaw({
+                ...page,
+                isCrawled: false,
+                statusCode: null,
+                title: null,
+                contentType: null,
+                fileType: null,
+                redirectUrl: null,
+                responseTime: null
+              })
+            }
+            return page
+          })
+          pages.value = updatedPages
 
           console.log(`Re-queued ${queuedCount} internal pending URLs for processing`)
           console.log(`Queue size after: ${crawlerInstance.state.queue.length}`)
@@ -278,6 +299,10 @@ export function useCrawler() {
 
         isStopping.value = false
         console.log('Starting crawler...')
+
+        // Start auto-save if it's not already running
+        startAutoSave(30000)
+
         await crawlerInstance.start()
       } catch (e) {
         error.value = 'Failed to continue crawl: ' + e.message
