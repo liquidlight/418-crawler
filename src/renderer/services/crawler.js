@@ -112,7 +112,7 @@ export class Crawler {
 
               if (!isAlreadyVisited && !isInQueue) {
                 this.state.addToQueue(url, 0)
-                this.state.markVisited(url) // Immediately mark as visited to prevent re-queueing
+                // Don't mark as visited here - let processUrl mark it when actually processing
                 console.debug(`Queued orphaned URL: ${url}`)
                 queuedCount++
               } else {
