@@ -261,8 +261,8 @@ export class Crawler {
       // Stage 3 (75%): HTML parsed
       this.pageProgress.set(url, { stage: 3, timestamp: Date.now() })
 
-      // Emit page processed event
-      this.onPageProcessed(page)
+      // Emit page processed event (and wait for it to complete - important for database saves)
+      await this.onPageProcessed(page)
       this.state.stats.pagesCrawled++
 
       // Stage 4 (100%): Processing complete
@@ -315,8 +315,8 @@ export class Crawler {
               this.state.stats.pagesFound++
               discoveredCount++
               console.log(`  ✓ Queued: ${normalizedLink}`)
-              // Emit discovered URL (internal link)
-              this.onPageProcessed({
+              // Emit discovered URL (internal link) - wait for database save to complete
+              await this.onPageProcessed({
                 type: 'url-discovered',
                 url: normalizedLink,
                 depth: depth + 1,
@@ -341,6 +341,7 @@ export class Crawler {
       }
 
       // Update in-links for all discovered URLs (both internal outLinks and externalLinks)
+      // This also awaits the onPageProcessed calls for in-links
       await this.updateInLinks(url, page.outLinks, page.externalLinks)
 
       // Queue external links just to get their status codes - don't parse their content
@@ -356,8 +357,8 @@ export class Crawler {
               this.state.addToQueue(normalizedLink, depth + 1)
               this.state.stats.pagesFound++
               externalQueuedCount++
-              // Emit discovered external URL event
-              this.onPageProcessed({
+              // Emit discovered external URL event - wait for database save to complete
+              await this.onPageProcessed({
                 type: 'url-discovered',
                 url: normalizedLink,
                 depth: depth + 1,
@@ -382,8 +383,8 @@ export class Crawler {
               this.state.addToQueue(assetUrl, depth + 1)
               this.state.stats.pagesFound++
               resourceQueuedCount++
-              // Emit discovered resource event
-              this.onPageProcessed({
+              // Emit discovered resource event - wait for database save to complete
+              await this.onPageProcessed({
                 type: 'url-discovered',
                 url: assetUrl,
                 depth: depth + 1,
@@ -426,7 +427,7 @@ export class Crawler {
         crawledAt: new Date().toISOString()
       }
       try {
-        this.onPageProcessed(failedPage)
+        await this.onPageProcessed(failedPage)
       } catch (e) {
         console.error('Error reporting failed page:', e)
       }
@@ -448,7 +449,8 @@ export class Crawler {
       try {
         // Notify about in-link discovery
         // This will be used to update pages in the database
-        this.onPageProcessed({
+        // Await to ensure database updates complete before continuing
+        await this.onPageProcessed({
           type: 'inlink-update',
           toUrl,
           fromUrl
