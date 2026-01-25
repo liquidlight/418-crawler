@@ -178,13 +178,18 @@ export class Crawler {
     if (batch.length === 0) {
       // If queue is empty but we have in-progress requests, wait for them to complete
       if (this.state.inProgress.size > 0) {
-        await new Promise(resolve => setTimeout(resolve, 50))
+        // Don't log every 50ms wait
       } else {
         // Queue is empty and no in-progress requests
-        await new Promise(resolve => setTimeout(resolve, 100))
+        if (this.state.stats.pagesCrawled > 0) {
+          console.debug(`[Batch] Queue empty, waiting... (crawled=${this.state.stats.pagesCrawled}, found=${this.state.stats.pagesFound}, visited=${this.state.visited.size})`)
+        }
       }
+      await new Promise(resolve => setTimeout(resolve, 100))
       return
     }
+
+    console.log(`[Batch] Processing ${batch.length} URLs. Queue remaining: ${this.state.queue.length}, in-progress: ${this.state.inProgress.size}`)
 
     // Process batch concurrently
     const promises = batch.map(item => this.processUrl(item))
@@ -294,17 +299,22 @@ export class Crawler {
 
       if (linksToQueue.length > 0) {
         let discoveredCount = 0
+        console.log(`[Link Queueing] Found ${linksToQueue.length} internal links on ${url}`)
         for (const link of linksToQueue) {
           const normalizedLink = normalizeUrl(link, url)
+          const isVisited = this.state.isVisited(normalizedLink)
+          const alreadyInQueue = this.state.queue.some(item => item.url === normalizedLink)
+
+          console.debug(`  - Link: ${link} -> normalized: ${normalizedLink || 'null'}, visited: ${isVisited}, inQueue: ${alreadyInQueue}`)
+
           // Only add to queue if not already in visited or queue
-          if (normalizedLink && !this.state.isVisited(normalizedLink)) {
-            // Check if already in queue
-            const alreadyInQueue = this.state.queue.some(item => item.url === normalizedLink)
+          if (normalizedLink && !isVisited) {
             if (!alreadyInQueue) {
               // Don't mark as visited yet - will be marked when actually processing
               this.state.addToQueue(normalizedLink, depth + 1)
               this.state.stats.pagesFound++
               discoveredCount++
+              console.log(`  ✓ Queued: ${normalizedLink}`)
               // Emit discovered URL (internal link)
               this.onPageProcessed({
                 type: 'url-discovered',
@@ -312,20 +322,22 @@ export class Crawler {
                 depth: depth + 1,
                 isExternal: false
               })
+            } else {
+              console.debug(`  ✗ Already in queue: ${normalizedLink}`)
             }
+          } else {
+            console.debug(`  ✗ Not queued (visited=${isVisited}): ${normalizedLink}`)
           }
         }
         // Emit progress after discovering new URLs so UI updates pending count
         if (discoveredCount > 0) {
           this.emitProgress()
-          if (discoveredCount > 1 || this.state.stats.pagesCrawled % 20 === 0) {
-            console.debug(`Discovered ${discoveredCount} URLs from ${url}. Total in queue: ${this.state.queue.length}, Total found: ${this.state.stats.pagesFound}`)
-          }
+          console.log(`[Link Queueing] Successfully queued ${discoveredCount} new URLs. Queue size: ${this.state.queue.length}`)
         }
       } else if (page.isExternal) {
-        console.debug(`External page crawled: ${url} (${page.statusCode}) - metadata logged, links not extracted`)
+        console.log(`[External Page] ${url} (${page.statusCode}) - links not extracted`)
       } else {
-        console.debug(`No links found in ${url}`)
+        console.log(`[No Links] No links found in ${url}`)
       }
 
       // Update in-links for all discovered URLs (both internal outLinks and externalLinks)
