@@ -36,33 +36,17 @@ function pagesToCSV(pages) {
  */
 function exportPagesToCSV(pages, fileName) {
   try {
-    console.log('exportPagesToCSV: Converting', pages.length, 'pages to CSV')
     const csv = pagesToCSV(pages)
-    console.log('exportPagesToCSV: CSV length:', csv.length)
-
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    console.log('exportPagesToCSV: Blob created, size:', blob.size)
-
     const url = URL.createObjectURL(blob)
-    console.log('exportPagesToCSV: Object URL created:', url)
-
     const link = document.createElement('a')
     link.href = url
     const downloadName = fileName || `crawl-export-${Date.now()}.csv`
     link.download = downloadName
-    console.log('exportPagesToCSV: Link created with download:', downloadName)
-
     document.body.appendChild(link)
-    console.log('exportPagesToCSV: Link appended to body')
-
     link.click()
-    console.log('exportPagesToCSV: Link clicked')
-
     document.body.removeChild(link)
-    console.log('exportPagesToCSV: Link removed')
-
     URL.revokeObjectURL(url)
-    console.log('exportPagesToCSV: URL revoked')
 
     return { success: true, fileName: downloadName }
   } catch (error) {
