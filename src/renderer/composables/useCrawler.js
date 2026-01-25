@@ -558,8 +558,11 @@ export function useCrawler() {
    */
   async function saveToFile(fileName = null) {
     try {
+      console.log('saveToFile: Exporting data...')
       const data = await db.exportData()
+      console.log('saveToFile: Got data with', data.pages?.length || 0, 'pages')
       const result = jsonStorage.saveToFile(data, fileName)
+      console.log('saveToFile: Result =', result)
       return result
     } catch (e) {
       error.value = e.message

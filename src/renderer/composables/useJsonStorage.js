@@ -26,17 +26,32 @@ export function useJsonStorage() {
     try {
       const domain = data.crawlState?.baseDomain || 'unknown'
       const filename = fileName || generateFileName(domain)
+      console.log('saveToFile: Creating blob for', filename)
 
       const jsonString = JSON.stringify(data, null, 2)
+      console.log('saveToFile: JSON string length:', jsonString.length)
       const blob = new Blob([jsonString], { type: 'application/json' })
+      console.log('saveToFile: Blob created, size:', blob.size)
+
       const url = URL.createObjectURL(blob)
+      console.log('saveToFile: Object URL created:', url)
+
       const link = document.createElement('a')
       link.href = url
       link.download = filename
+      console.log('saveToFile: Link element created, download attr:', filename)
+
       document.body.appendChild(link)
+      console.log('saveToFile: Link appended to body')
+
       link.click()
+      console.log('saveToFile: Link clicked')
+
       document.body.removeChild(link)
+      console.log('saveToFile: Link removed from body')
+
       URL.revokeObjectURL(url)
+      console.log('saveToFile: Object URL revoked')
 
       lastSaveTime.value = new Date()
       return { success: true, filename }
