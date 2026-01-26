@@ -233,10 +233,11 @@ export function useJsonStorage() {
     loadFromStorage,
     loadFromFile,
     clearStorage,
+    getRegistry,
+    addToRegistry,
+    removeFromRegistry,
     listSavedCrawls,
     saveCrawlToAppStorage,
-    loadCrawlFromAppStorage,
-    removeFromRegistry,
-    getRegistry
+    loadCrawlFromAppStorage
   }
 }

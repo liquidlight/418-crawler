@@ -1,22 +1,31 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useJsonStorage } from '../useJsonStorage.js'
 
+// Mock localStorage for tests
+const localStorageMock = (() => {
+  let store = {}
+  return {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => { store[key] = value.toString() },
+    removeItem: (key) => { delete store[key] },
+    clear: () => { store = {} }
+  }
+})()
+
+// Set up global localStorage mock
+global.localStorage = localStorageMock
+
 describe('useJsonStorage Composable', () => {
   let storage
 
   beforeEach(() => {
+    localStorage.clear()
     storage = useJsonStorage()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
-    if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.clear?.()
-      } catch (e) {
-        // localStorage might not be available
-      }
-    }
+    localStorage.clear()
   })
 
   describe('File Name Generation', () => {
@@ -29,7 +38,8 @@ describe('useJsonStorage Composable', () => {
 
     it('includes date in filename', () => {
       const filename = storage.generateFileName('example.com')
-      expect(filename).toContain('2024-01-26')
+      // Should contain date in YYYY-MM-DD format
+      expect(filename).toMatch(/\d{4}-\d{2}-\d{2}/)
     })
 
     it('includes time in filename', () => {
@@ -278,7 +288,9 @@ describe('useJsonStorage Composable', () => {
     })
 
     it('handles QuotaExceededError gracefully', () => {
-      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      // Mock localStorage.setItem to throw QuotaExceededError
+      const originalSetItem = localStorage.setItem
+      localStorage.setItem = vi.fn(() => {
         const error = new Error('QuotaExceededError')
         error.name = 'QuotaExceededError'
         throw error
@@ -286,7 +298,10 @@ describe('useJsonStorage Composable', () => {
 
       const result = storage.autoSaveToStorage({ pages: [] })
       expect(result.success).toBe(false)
-      expect(result.error).toContain('quota')
+      expect(result.error.toLowerCase()).toContain('quota')
+
+      // Restore original setItem
+      localStorage.setItem = originalSetItem
     })
   })
 

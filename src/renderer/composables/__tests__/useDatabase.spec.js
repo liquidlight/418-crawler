@@ -1,30 +1,32 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useDatabase } from '../useDatabase.js'
+
+// Mock localStorage for tests
+const localStorageMock = (() => {
+  let store = {}
+  return {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => { store[key] = value.toString() },
+    removeItem: (key) => { delete store[key] },
+    clear: () => { store = {} }
+  }
+})()
+
+// Set up global localStorage mock
+global.localStorage = localStorageMock
 
 describe('useDatabase Composable', () => {
   let db
 
   beforeEach(async () => {
-    // Clear localStorage before each test if available
-    if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.clear?.()
-      } catch (e) {
-        // localStorage might not be fully available
-      }
-    }
+    // Clear localStorage before each test
+    localStorage.clear()
     db = useDatabase()
     await db.init()
   })
 
   afterEach(() => {
-    if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.clear?.()
-      } catch (e) {
-        // localStorage might not be fully available
-      }
-    }
+    localStorage.clear()
   })
 
   describe('Initialization', () => {
