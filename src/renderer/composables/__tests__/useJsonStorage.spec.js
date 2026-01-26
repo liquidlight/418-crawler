@@ -192,16 +192,15 @@ describe('useJsonStorage Composable', () => {
 
       // Mock document and URL objects
       const mockLink = { href: '', download: '', click: vi.fn() }
-      const originalCreateElement = document.createElement
       vi.spyOn(document, 'createElement').mockReturnValue(mockLink)
       vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink)
       vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink)
+      global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url')
+      global.URL.revokeObjectURL = vi.fn().mockImplementation(() => {})
 
       const result = storage.saveToFile(crawlData)
       expect(result.success).toBe(true)
       expect(result.filename).toContain('.json')
-
-      document.createElement = originalCreateElement
     })
 
     it('saveToFile uses provided filename', () => {
@@ -214,6 +213,8 @@ describe('useJsonStorage Composable', () => {
       vi.spyOn(document, 'createElement').mockReturnValue(mockLink)
       vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink)
       vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink)
+      global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url')
+      global.URL.revokeObjectURL = vi.fn().mockImplementation(() => {})
 
       const result = storage.saveToFile(crawlData, 'my-crawl.json')
       expect(result.filename).toBe('my-crawl.json')
@@ -229,6 +230,8 @@ describe('useJsonStorage Composable', () => {
       vi.spyOn(document, 'createElement').mockReturnValue(mockLink)
       vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink)
       vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink)
+      global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url')
+      global.URL.revokeObjectURL = vi.fn().mockImplementation(() => {})
 
       const result = storage.saveToFile(crawlData)
       expect(result.filename).toContain('crawl-example.com')
@@ -357,6 +360,13 @@ describe('useJsonStorage Composable', () => {
     })
 
     it('records lastSaveTime on saveToFile', () => {
+      const mockLink = { href: '', download: '', click: vi.fn() }
+      vi.spyOn(document, 'createElement').mockReturnValue(mockLink)
+      vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink)
+      vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink)
+      global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url')
+      global.URL.revokeObjectURL = vi.fn().mockImplementation(() => {})
+
       const before = new Date().getTime()
       storage.saveToFile({ pages: [], crawlState: {} })
       const after = new Date().getTime()
