@@ -4,6 +4,16 @@ import ResultsFilters from '../ResultsFilters.vue'
 
 describe('ResultsFilters Component', () => {
   let mockPages
+  const defaultProps = {
+    selectedStatusCodes: [],
+    selectedFileTypes: [],
+    searchTerm: ''
+  }
+
+  const createWrapper = (props = {}) =>
+    mount(ResultsFilters, {
+      props: { ...defaultProps, pages: mockPages, ...props }
+    })
 
   beforeEach(() => {
     mockPages = [
@@ -87,7 +97,11 @@ describe('ResultsFilters Component', () => {
       expect(wrapper.text()).toContain('5XX')
     })
 
-    it('shows correct count for 2XX status codes', () => {
+    it.each([
+      ['2XX', '2XX (3)'],
+      ['4XX', '4XX (1)'],
+      ['5XX', '5XX (1)']
+    ])('shows correct count for %s status codes', (statusGroup, expectedCount) => {
       const wrapper = mount(ResultsFilters, {
         props: {
           pages: mockPages,
@@ -97,33 +111,7 @@ describe('ResultsFilters Component', () => {
         }
       })
 
-      expect(wrapper.text()).toContain('2XX (3)')
-    })
-
-    it('shows correct count for 4XX status codes', () => {
-      const wrapper = mount(ResultsFilters, {
-        props: {
-          pages: mockPages,
-          selectedStatusCodes: [],
-          selectedFileTypes: [],
-          searchTerm: ''
-        }
-      })
-
-      expect(wrapper.text()).toContain('4XX (1)')
-    })
-
-    it('shows correct count for 5XX status codes', () => {
-      const wrapper = mount(ResultsFilters, {
-        props: {
-          pages: mockPages,
-          selectedStatusCodes: [],
-          selectedFileTypes: [],
-          searchTerm: ''
-        }
-      })
-
-      expect(wrapper.text()).toContain('5XX (1)')
+      expect(wrapper.text()).toContain(expectedCount)
     })
 
     it('status code checkboxes are clickable', () => {
@@ -156,7 +144,10 @@ describe('ResultsFilters Component', () => {
       expect(wrapper.text()).toContain('html')
     })
 
-    it('shows correct count for html files', () => {
+    it.each([
+      ['html', 'html (5)'],
+      ['css', 'css (1)']
+    ])('shows correct count for %s files', (fileType, expectedCount) => {
       const wrapper = mount(ResultsFilters, {
         props: {
           pages: mockPages,
@@ -166,20 +157,7 @@ describe('ResultsFilters Component', () => {
         }
       })
 
-      expect(wrapper.text()).toContain('html (5)')
-    })
-
-    it('shows correct count for css files', () => {
-      const wrapper = mount(ResultsFilters, {
-        props: {
-          pages: mockPages,
-          selectedStatusCodes: [],
-          selectedFileTypes: [],
-          searchTerm: ''
-        }
-      })
-
-      expect(wrapper.text()).toContain('css (1)')
+      expect(wrapper.text()).toContain(expectedCount)
     })
 
     it('has file type labels', () => {
