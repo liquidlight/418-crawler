@@ -293,8 +293,8 @@
                 <tr>
                   <th class="sortable" @click="toggleSort('row')" :class="{ active: sortBy === 'row' }" style="width: 50px;">Row <span v-if="sortBy === 'row'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
                   <th class="sortable" @click="toggleSort('url')" :class="{ active: sortBy === 'url' }">URL <span v-if="sortBy === 'url'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
-                  <th style="width: 65px;">Status</th>
-                  <th style="width: 75px;">File Type</th>
+                  <th class="sortable" @click="toggleSort('status')" :class="{ active: sortBy === 'status' }" style="width: 65px;">Status <span v-if="sortBy === 'status'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                  <th class="sortable" @click="toggleSort('fileType')" :class="{ active: sortBy === 'fileType' }" style="width: 75px;">File Type <span v-if="sortBy === 'fileType'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
                   <th class="sortable" @click="toggleSort('time')" :class="{ active: sortBy === 'time' }" style="width: 90px;">Time <span v-if="sortBy === 'time'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
                   <th style="width: 70px;"></th>
                 </tr>
@@ -560,6 +560,12 @@ export default {
         } else if (sortBy.value === 'title') {
           aVal = (a.title || '').toLowerCase()
           bVal = (b.title || '').toLowerCase()
+        } else if (sortBy.value === 'status') {
+          aVal = a.statusCode || 0
+          bVal = b.statusCode || 0
+        } else if (sortBy.value === 'fileType') {
+          aVal = (a.fileType || '').toLowerCase()
+          bVal = (b.fileType || '').toLowerCase()
         } else if (sortBy.value === 'time') {
           aVal = a.responseTime || 0
           bVal = b.responseTime || 0
