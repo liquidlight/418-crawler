@@ -291,22 +291,23 @@
             <table class="results-table" v-if="displayPages.length > 0">
               <thead>
                 <tr>
-                  <th style="width: 65px;">Status</th>
-                  <th style="width: 85px;">Type</th>
-                  <th style="width: 75px;">File Type</th>
+                  <th class="sortable" @click="toggleSort('row')" :class="{ active: sortBy === 'row' }" style="width: 50px;">Row <span v-if="sortBy === 'row'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
                   <th class="sortable" @click="toggleSort('url')" :class="{ active: sortBy === 'url' }">URL <span v-if="sortBy === 'url'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
-                  <th class="sortable" @click="toggleSort('title')" :class="{ active: sortBy === 'title' }">Title <span v-if="sortBy === 'title'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                  <th style="width: 65px;">Status</th>
+                  <th style="width: 75px;">File Type</th>
                   <th class="sortable" @click="toggleSort('time')" :class="{ active: sortBy === 'time' }" style="width: 90px;">Time <span v-if="sortBy === 'time'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
                   <th style="width: 70px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="page in displayPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 500 }" @click="selectedPage = page">
+                  <td class="row-cell"><span class="row-number">{{ page.processOrder || '—' }}</span></td>
+                  <td class="url-cell">
+                    <span class="url-text">{{ page.url }}</span>
+                    <span class="title-text">{{ page.title || '' }}</span>
+                  </td>
                   <td><span class="status-badge" :class="getStatusBadgeClass(page.statusCode)">{{ page.statusCode || 'pending' }}</span></td>
-                  <td><span class="type-badge" :class="page.isExternal ? 'external' : 'internal'">{{ page.isExternal ? 'External' : 'Internal' }}</span></td>
                   <td><span class="file-type-badge">{{ getFileTypeLabel(getFileType(page.url, page.contentType || '')) }}</span></td>
-                  <td class="url-cell"><span class="url-text">{{ page.url }}</span></td>
-                  <td class="title-cell"><span class="title-text">{{ page.title || 'No title' }}</span></td>
                   <td class="time-cell">{{ page.responseTime }}ms<div class="time-bar"><div class="time-bar-fill" :class="getTimeBarClass(page.responseTime)" :style="{ width: (page.responseTime / 1000) * 100 + '%' }"></div></div></td>
                   <td><div class="row-actions">
                     <button class="action-btn" @click.stop="handleRequeueLink(page)" title="Re-queue for reprocessing">
@@ -429,8 +430,8 @@ export default {
     const activeTab = ref('overview')
     const landingPageUrl = ref('')
     const openDropdown = ref(null) // 'status', 'external', 'filetype', or null
-    const sortBy = ref(null) // 'url', 'title', or 'time'
-    const sortOrder = ref('asc') // 'asc' or 'desc'
+    const sortBy = ref('row') // 'row', 'url', 'title', or 'time'
+    const sortOrder = ref('desc') // 'asc' or 'desc'
 
     const savedCrawls = computed(() => crawler.getSavedCrawls())
 
@@ -546,15 +547,14 @@ export default {
     })
 
     const displayPages = computed(() => {
-      if (!sortBy.value) {
-        return filteredPages.value
-      }
-
       const sorted = [...filteredPages.value]
       sorted.sort((a, b) => {
         let aVal, bVal
 
-        if (sortBy.value === 'url') {
+        if (sortBy.value === 'row') {
+          aVal = a.processOrder || 0
+          bVal = b.processOrder || 0
+        } else if (sortBy.value === 'url') {
           aVal = a.url.toLowerCase()
           bVal = b.url.toLowerCase()
         } else if (sortBy.value === 'title') {
@@ -1669,7 +1669,10 @@ export default {
   white-space: nowrap;
 }
 
-.url-cell { max-width: 300px; }
+.url-cell {
+  min-width: 300px;
+  padding: 10px 14px !important;
+}
 
 .url-text {
   font-family: 'JetBrains Mono', monospace;
@@ -1683,16 +1686,29 @@ export default {
 
 tr:hover .url-text { color: var(--accent-blue); }
 
+.row-cell {
+  text-align: center;
+  padding: 12px 6px !important;
+}
+
+.row-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .title-cell { max-width: 200px; }
 
 .title-text {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
+  margin-top: 4px;
 }
 
 .time-cell {
