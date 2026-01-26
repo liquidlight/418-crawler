@@ -2,26 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PageDetailModal from '../PageDetailModal.vue'
 
-// Mock utilities
-vi.mock('../../utils/statusBadges.js', () => ({
-  getStatusBadgeClass: vi.fn((statusCode) => {
-    if (statusCode >= 200 && statusCode < 300) return 's2xx'
-    if (statusCode >= 300 && statusCode < 400) return 's3xx'
-    if (statusCode >= 400 && statusCode < 500) return 's4xx'
-    if (statusCode >= 500) return 's5xx'
-    return 's1xx'
-  })
-}))
-
-vi.mock('../../utils/textFormatting.js', () => ({
-  truncateUrl: vi.fn((url) => {
-    if (url.length > 50) {
-      return url.substring(0, 47) + '...'
-    }
-    return url
-  })
-}))
-
 // Mock useDatabase composable
 vi.mock('../../composables/useDatabase.js', () => ({
   useDatabase: () => ({
@@ -31,6 +11,11 @@ vi.mock('../../composables/useDatabase.js', () => ({
 
 describe('PageDetailModal Component', () => {
   let mockPage
+
+  const createWrapper = (page = 'default') =>
+    mount(PageDetailModal, {
+      props: { page: page === 'default' ? mockPage : page }
+    })
 
   beforeEach(() => {
     mockPage = {
@@ -50,59 +35,34 @@ describe('PageDetailModal Component', () => {
 
   describe('Rendering', () => {
     it('does not render when page prop is null', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: null }
-      })
+      const wrapper = createWrapper(null)
       expect(wrapper.find('.modal-overlay').exists()).toBe(false)
     })
 
-    it('renders modal overlay when page prop exists', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.find('.modal-overlay').exists()).toBe(true)
-    })
-
-    it('renders modal container', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.find('.modal').exists()).toBe(true)
+    it.each([
+      ['.modal-overlay', 'modal overlay'],
+      ['.modal', 'modal container'],
+      ['.modal-header', 'modal header'],
+      ['.modal-body', 'modal body'],
+      ['.modal-footer', 'modal footer']
+    ])('renders %s', (selector, description) => {
+      const wrapper = createWrapper()
+      expect(wrapper.find(selector).exists()).toBe(true)
     })
 
     it('renders modal header with title', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.find('.modal-header').exists()).toBe(true)
       expect(wrapper.text()).toContain('Page Details')
     })
 
-    it('renders modal body', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.find('.modal-body').exists()).toBe(true)
-    })
-
-    it('renders modal footer', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.find('.modal-footer').exists()).toBe(true)
-    })
-
     it('renders close button in header', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.find('.btn-close').exists()).toBe(true)
     })
 
     it('renders close button in footer', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const buttons = wrapper.findAll('button')
       const closeButton = buttons.find(b => b.text() === 'Close')
       expect(closeButton).toBeTruthy()
@@ -111,67 +71,43 @@ describe('PageDetailModal Component', () => {
 
   describe('URL Section', () => {
     it('displays URL section', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('URL')
     })
 
     it('displays the page URL as a link', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const link = wrapper.find('.url-link')
       expect(link.exists()).toBe(true)
       expect(link.text()).toBe(mockPage.url)
     })
 
     it('URL link opens in new tab', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const link = wrapper.find('.url-link')
       expect(link.attributes('target')).toBe('_blank')
     })
 
     it('URL link has security attributes', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const link = wrapper.find('.url-link')
       expect(link.attributes('rel')).toBe('noopener noreferrer')
     })
   })
 
   describe('Status, File Type, Response Time', () => {
-    it('displays status badge', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.text()).toContain('Status')
-      expect(wrapper.text()).toContain('200')
-    })
-
-    it('displays file type', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.text()).toContain('File Type')
-      expect(wrapper.text()).toContain('html')
-    })
-
-    it('displays response time with ms suffix', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.text()).toContain('Response Time')
-      expect(wrapper.text()).toContain('145ms')
+    it.each([
+      ['Status', '200'],
+      ['File Type', 'html'],
+      ['Response Time', '145ms']
+    ])('displays %s as %s', (label, value) => {
+      const wrapper = createWrapper()
+      expect(wrapper.text()).toContain(label)
+      expect(wrapper.text()).toContain(value)
     })
 
     it('displays all three metrics in detail row', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const detailRow = wrapper.find('.detail-row')
       expect(detailRow.exists()).toBe(true)
     })
@@ -179,158 +115,92 @@ describe('PageDetailModal Component', () => {
 
   describe('Metadata Section', () => {
     it('displays metadata section', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('Metadata')
     })
 
-    it('displays page title', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.text()).toContain('Title:')
-      expect(wrapper.text()).toContain('Test Page')
-    })
-
-    it('displays H1', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.text()).toContain('H1:')
-      expect(wrapper.text()).toContain('Main Heading')
-    })
-
-    it('displays meta description', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
-      expect(wrapper.text()).toContain('Description:')
-      expect(wrapper.text()).toContain('Test description')
-    })
-
-    it('displays (none) for missing title', () => {
-      const page = { ...mockPage, title: null }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
-      expect(wrapper.text()).toContain('Title:')
-      expect(wrapper.text()).toContain('(none)')
-    })
-
-    it('displays (none) for missing H1', () => {
-      const page = { ...mockPage, h1: null }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
-      expect(wrapper.text()).toContain('H1:')
-      expect(wrapper.text()).toContain('(none)')
-    })
-
-    it('displays (none) for missing description', () => {
-      const page = { ...mockPage, metaDescription: null }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
-      expect(wrapper.text()).toContain('Description:')
-      expect(wrapper.text()).toContain('(none)')
+    it.each([
+      ['Title:', 'Test Page', {}],
+      ['H1:', 'Main Heading', {}],
+      ['Description:', 'Test description', {}],
+      ['Title:', '(none)', { title: null }],
+      ['H1:', '(none)', { h1: null }],
+      ['Description:', '(none)', { metaDescription: null }]
+    ])('displays metadata %s as %s', (label, expectedValue, pageOverrides) => {
+      const page = { ...mockPage, ...pageOverrides }
+      const wrapper = createWrapper(page)
+      expect(wrapper.text()).toContain(label)
+      expect(wrapper.text()).toContain(expectedValue)
     })
   })
 
   describe('In-Links Section', () => {
     it('displays in-links section with count', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('In-Links')
       expect(wrapper.text()).toContain('(2)')
     })
 
     it('renders in-links as buttons', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const linkButtons = wrapper.findAll('.link-button')
       expect(linkButtons.length).toBeGreaterThan(0)
     })
 
-    it('displays no in-links message when empty', () => {
-      const page = { ...mockPage, inLinks: [] }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
-      expect(wrapper.text()).toContain('No in-links found')
-    })
-
-    it('displays no in-links for undefined', () => {
-      const page = { ...mockPage, inLinks: undefined }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+    it.each([
+      { inLinks: [] },
+      { inLinks: undefined }
+    ])('displays no in-links message when empty or undefined', (pageOverrides) => {
+      const page = { ...mockPage, ...pageOverrides }
+      const wrapper = createWrapper(page)
       expect(wrapper.text()).toContain('No in-links found')
     })
 
     it('displays all in-links', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('https://example.com')
     })
   })
 
   describe('Out-Links Section', () => {
     it('displays out-links section with count', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('Out-Links')
       expect(wrapper.text()).toContain('(2)')
     })
 
     it('renders out-links as buttons', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const buttons = wrapper.findAll('.link-button')
       expect(buttons.length).toBeGreaterThan(0)
     })
 
     it('displays no out-links message when empty', () => {
       const page = { ...mockPage, outLinks: [] }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.text()).toContain('No out-links found')
     })
   })
 
   describe('External Links Section', () => {
     it('displays external links section when present', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('External Links')
     })
 
     it('displays external link count', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('External Links (2)')
     })
 
     it('displays external links as clickable links', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const externalLinks = wrapper.findAll('.external-link')
       expect(externalLinks.length).toBeGreaterThan(0)
     })
 
     it('external links open in new tab', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const externalLinks = wrapper.findAll('.external-link')
       externalLinks.forEach(link => {
         expect(link.attributes('target')).toBe('_blank')
@@ -342,9 +212,7 @@ describe('PageDetailModal Component', () => {
         ...mockPage,
         externalLinks: Array(15).fill('https://external.com')
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       const externalLinks = wrapper.findAll('.external-link')
       expect(externalLinks.length).toBeLessThanOrEqual(10)
     })
@@ -354,17 +222,13 @@ describe('PageDetailModal Component', () => {
         ...mockPage,
         externalLinks: Array(15).fill('https://external.com')
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.text()).toContain('and 5 more external links...')
     })
 
     it('hides external links section when not present', () => {
       const page = { ...mockPage, externalLinks: [] }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       const sections = wrapper.findAll('.detail-section')
       const hasExternalSection = sections.some(s => s.text().includes('External Links'))
       expect(hasExternalSection).toBe(false)
@@ -373,31 +237,23 @@ describe('PageDetailModal Component', () => {
 
   describe('Assets Section', () => {
     it('displays assets section when present', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('Assets')
     })
 
     it('displays asset count', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('Assets (2)')
     })
 
     it('displays assets as clickable links', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const assetLinks = wrapper.findAll('.asset-link')
       expect(assetLinks.length).toBeGreaterThan(0)
     })
 
     it('assets open in new tab', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const assetLinks = wrapper.findAll('.asset-link')
       assetLinks.forEach(link => {
         expect(link.attributes('target')).toBe('_blank')
@@ -409,9 +265,7 @@ describe('PageDetailModal Component', () => {
         ...mockPage,
         assets: Array(15).fill('https://example.com/asset.js')
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       const assetLinks = wrapper.findAll('.asset-link')
       expect(assetLinks.length).toBeLessThanOrEqual(10)
     })
@@ -421,17 +275,13 @@ describe('PageDetailModal Component', () => {
         ...mockPage,
         assets: Array(15).fill('https://example.com/asset.js')
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.text()).toContain('and 5 more assets...')
     })
 
     it('hides assets section when not present', () => {
       const page = { ...mockPage, assets: [] }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       const sections = wrapper.findAll('.detail-section')
       const hasAssetsSection = sections.some(s => s.text().includes('Assets'))
       expect(hasAssetsSection).toBe(false)
@@ -440,36 +290,28 @@ describe('PageDetailModal Component', () => {
 
   describe('Event Emissions', () => {
     it('emits close when close button clicked', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const closeButton = wrapper.find('.btn-close')
       await closeButton.trigger('click')
       expect(wrapper.emitted('close')).toBeTruthy()
     })
 
     it('emits close when modal overlay clicked', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const overlay = wrapper.find('.modal-overlay')
       await overlay.trigger('click')
       expect(wrapper.emitted('close')).toBeTruthy()
     })
 
     it('does not emit close when modal content clicked', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const modal = wrapper.find('.modal')
       await modal.trigger('click')
       expect(wrapper.emitted('close')).toBeFalsy()
     })
 
     it('emits close when footer close button clicked', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const buttons = wrapper.findAll('button')
       const closeBtn = buttons.find(b => b.text() === 'Close')
       await closeBtn.trigger('click')
@@ -477,9 +319,7 @@ describe('PageDetailModal Component', () => {
     })
 
     it('emits navigate when in-link clicked', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const linkButtons = wrapper.findAll('.link-button')
       if (linkButtons.length > 0) {
         await linkButtons[0].trigger('click')
@@ -489,9 +329,7 @@ describe('PageDetailModal Component', () => {
     })
 
     it('emits navigate with correct URL', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const linkButtons = wrapper.findAll('.link-button')
       await linkButtons[0].trigger('click')
       expect(wrapper.emitted('navigate')[0][0]).toBe('https://example.com')
@@ -500,9 +338,7 @@ describe('PageDetailModal Component', () => {
 
   describe('Reactivity', () => {
     it('updates when page prop changes', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.text()).toContain('Test Page')
 
       const newPage = { ...mockPage, title: 'New Title' }
@@ -511,9 +347,7 @@ describe('PageDetailModal Component', () => {
     })
 
     it('hides when page prop changes to null', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.find('.modal-overlay').exists()).toBe(true)
 
       await wrapper.setProps({ page: null })
@@ -521,9 +355,7 @@ describe('PageDetailModal Component', () => {
     })
 
     it('shows when page prop changes from null', async () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: null }
-      })
+      const wrapper = createWrapper(null)
       expect(wrapper.find('.modal-overlay').exists()).toBe(false)
 
       await wrapper.setProps({ page: mockPage })
@@ -536,9 +368,7 @@ describe('PageDetailModal Component', () => {
       const page = {
         url: 'https://example.com'
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.exists()).toBe(true)
     })
 
@@ -556,9 +386,7 @@ describe('PageDetailModal Component', () => {
         externalLinks: [],
         assets: []
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.text()).toContain('No in-links found')
       expect(wrapper.text()).toContain('No out-links found')
     })
@@ -566,25 +394,19 @@ describe('PageDetailModal Component', () => {
     it('handles very long URLs', () => {
       const longUrl = 'https://example.com/' + 'very/long/path/'.repeat(20)
       const page = { ...mockPage, url: longUrl }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.exists()).toBe(true)
     })
 
     it('handles response time of 0ms', () => {
       const page = { ...mockPage, responseTime: 0 }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.text()).toContain('0ms')
     })
 
     it('handles response time of null', () => {
       const page = { ...mockPage, responseTime: null }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.exists()).toBe(true)
     })
 
@@ -593,9 +415,7 @@ describe('PageDetailModal Component', () => {
         ...mockPage,
         inLinks: Array(50).fill('https://example.com')
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.text()).toContain('In-Links (50)')
     })
 
@@ -604,9 +424,7 @@ describe('PageDetailModal Component', () => {
         ...mockPage,
         externalLinks: ['https://example.com?param=value&other=123#hash']
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.exists()).toBe(true)
     })
 
@@ -616,18 +434,14 @@ describe('PageDetailModal Component', () => {
         inLinks: ['https://example.com', 'https://example.com'],
         outLinks: ['https://example.com/page', 'https://example.com/page']
       }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.exists()).toBe(true)
     })
   })
 
   describe('CSS Classes', () => {
     it('applies correct CSS classes to modal elements', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.find('.modal-overlay').exists()).toBe(true)
       expect(wrapper.find('.modal').exists()).toBe(true)
       expect(wrapper.find('.modal-header').exists()).toBe(true)
@@ -636,17 +450,13 @@ describe('PageDetailModal Component', () => {
     })
 
     it('applies detail section classes', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const detailSections = wrapper.findAll('.detail-section')
       expect(detailSections.length).toBeGreaterThan(0)
     })
 
     it('applies link item classes', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const linkItems = wrapper.findAll('.link-item')
       expect(linkItems.length).toBeGreaterThan(0)
     })
@@ -655,9 +465,7 @@ describe('PageDetailModal Component', () => {
   describe('Link Count Display', () => {
     it('displays correct count for in-links', () => {
       const page = { ...mockPage, inLinks: ['a', 'b', 'c'] }
-      const wrapper = mount(PageDetailModal, {
-        props: { page }
-      })
+      const wrapper = createWrapper(page)
       expect(wrapper.text()).toContain('In-Links (3)')
     })
 
@@ -696,18 +504,14 @@ describe('PageDetailModal Component', () => {
 
   describe('Status Badge', () => {
     it('applies status badge class', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const badge = wrapper.find('.badge')
       expect(badge.exists()).toBe(true)
       expect(badge.classes()).toContain('s2xx')
     })
 
     it('displays badge info class for file type', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const badges = wrapper.findAll('.badge')
       const hasInfoBadge = badges.some(b => b.classes().includes('badge-info'))
       expect(hasInfoBadge).toBe(true)
@@ -716,32 +520,24 @@ describe('PageDetailModal Component', () => {
 
   describe('Text Truncation', () => {
     it('uses truncateUrl utility for in-links', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       expect(wrapper.vm.truncateUrl).toBeTruthy()
     })
 
     it('uses truncateUrl utility for out-links', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const linkButtons = wrapper.findAll('.link-button')
       expect(linkButtons.length).toBeGreaterThan(0)
     })
 
     it('uses truncateUrl utility for external links', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const externalLinks = wrapper.findAll('.external-link')
       expect(externalLinks.length).toBeGreaterThan(0)
     })
 
     it('uses truncateUrl utility for assets', () => {
-      const wrapper = mount(PageDetailModal, {
-        props: { page: mockPage }
-      })
+      const wrapper = createWrapper()
       const assetLinks = wrapper.findAll('.asset-link')
       expect(assetLinks.length).toBeGreaterThan(0)
     })
