@@ -13,13 +13,13 @@ export function filterByStatusCode(pages, statusCodes) {
 
     return statusCodes.some(code => {
       // If code is grouped (e.g., "3XX"), check if page status falls in that range
-      if (code.endsWith('XX')) {
+      if (String(code).endsWith('XX')) {
         const hundreds = parseInt(code)
         const pageHundreds = Math.floor(pageStatus / 100)
         return hundreds === pageHundreds
       }
-      // If code is specific (e.g., 301), match exactly
-      return code === pageStatus
+      // If code is specific (e.g., 301 or "301"), match exactly
+      return pageStatus === parseInt(code)
     })
   })
 }
