@@ -57,7 +57,7 @@ export default {
   setup(props, { emit }) {
     const errorPages = computed(() => {
       if (!props.pages) return []
-      return props.pages.filter(page => page.errorMessage || (page.statusCode && page.statusCode >= 400))
+      return props.pages.filter(page => page.errorMessage || (page.statusCode && page.statusCode >= 500))
     })
 
     function formatDate(dateStr) {

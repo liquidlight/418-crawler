@@ -288,20 +288,20 @@
 
           <!-- Results Table -->
           <div class="table-container">
-            <table class="results-table" v-if="filteredPages.length > 0">
+            <table class="results-table" v-if="displayPages.length > 0">
               <thead>
                 <tr>
                   <th style="width: 65px;">Status</th>
                   <th style="width: 85px;">Type</th>
                   <th style="width: 75px;">File Type</th>
-                  <th class="sortable">URL</th>
-                  <th class="sortable">Title</th>
-                  <th class="sortable" style="width: 90px;">Time ↓</th>
+                  <th class="sortable" @click="toggleSort('url')" :class="{ active: sortBy === 'url' }">URL <span v-if="sortBy === 'url'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                  <th class="sortable" @click="toggleSort('title')" :class="{ active: sortBy === 'title' }">Title <span v-if="sortBy === 'title'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                  <th class="sortable" @click="toggleSort('time')" :class="{ active: sortBy === 'time' }" style="width: 90px;">Time <span v-if="sortBy === 'time'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
                   <th style="width: 70px;"></th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="page in filteredPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 400 }" @click="selectedPage = page">
+                <tr v-for="page in displayPages" :key="page.url" :class="{ 'error-row': page.statusCode >= 500 }" @click="selectedPage = page">
                   <td><span class="status-badge" :class="getStatusBadgeClass(page.statusCode)">{{ page.statusCode || 'pending' }}</span></td>
                   <td><span class="type-badge" :class="page.isExternal ? 'external' : 'internal'">{{ page.isExternal ? 'External' : 'Internal' }}</span></td>
                   <td><span class="file-type-badge">{{ getFileTypeLabel(getFileType(page.url, page.contentType || '')) }}</span></td>
@@ -319,7 +319,7 @@
                 </tr>
               </tbody>
             </table>
-            <div v-else class="no-results">
+            <div v-if="displayPages.length === 0" class="no-results">
               No results match your filters
             </div>
           </div>
@@ -429,6 +429,8 @@ export default {
     const activeTab = ref('overview')
     const landingPageUrl = ref('')
     const openDropdown = ref(null) // 'status', 'external', 'filetype', or null
+    const sortBy = ref(null) // 'url', 'title', or 'time'
+    const sortOrder = ref('asc') // 'asc' or 'desc'
 
     const savedCrawls = computed(() => crawler.getSavedCrawls())
 
@@ -493,7 +495,7 @@ export default {
     )
 
     const errorCount = computed(() =>
-      crawler.pages.value.filter(p => p.statusCode && p.statusCode >= 400).length
+      crawler.pages.value.filter(p => p.statusCode && p.statusCode >= 500).length
     )
 
     const filteredPages = computed(() => {
@@ -541,6 +543,34 @@ export default {
       }
 
       return result
+    })
+
+    const displayPages = computed(() => {
+      if (!sortBy.value) {
+        return filteredPages.value
+      }
+
+      const sorted = [...filteredPages.value]
+      sorted.sort((a, b) => {
+        let aVal, bVal
+
+        if (sortBy.value === 'url') {
+          aVal = a.url.toLowerCase()
+          bVal = b.url.toLowerCase()
+        } else if (sortBy.value === 'title') {
+          aVal = (a.title || '').toLowerCase()
+          bVal = (b.title || '').toLowerCase()
+        } else if (sortBy.value === 'time') {
+          aVal = a.responseTime || 0
+          bVal = b.responseTime || 0
+        }
+
+        if (aVal < bVal) return sortOrder.value === 'asc' ? -1 : 1
+        if (aVal > bVal) return sortOrder.value === 'asc' ? 1 : -1
+        return 0
+      })
+
+      return sorted
     })
 
     const progressPercent = computed(() => {
@@ -855,6 +885,15 @@ export default {
       error.value = null
     }
 
+    function toggleSort(column) {
+      if (sortBy.value === column) {
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+      } else {
+        sortBy.value = column
+        sortOrder.value = 'asc'
+      }
+    }
+
     function getStatusCount(code) {
       // Handle grouped status codes (e.g., "3XX")
       if (code.endsWith('XX')) {
@@ -947,6 +986,10 @@ export default {
       crawlState: crawler.crawlState,
       pages: crawler.pages,
       filteredPages,
+      displayPages,
+      sortBy,
+      sortOrder,
+      toggleSort,
       filteredPendingPages,
       pendingPages,
       pendingCount,
@@ -1545,6 +1588,17 @@ export default {
 
 .results-table th.sortable:hover {
   color: var(--text-secondary);
+}
+
+.results-table th.sortable.active {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.sort-icon {
+  font-size: 9px;
+  margin-left: 4px;
+  color: var(--accent-blue);
 }
 
 .results-table td {

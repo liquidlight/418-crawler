@@ -10,11 +10,11 @@
  * @returns {string} - CSS class name (e.g., 'badge-success', 'badge-warning')
  */
 export function getStatusBadgeClass(status) {
-  if (status >= 200 && status < 300) return 'badge-success'
-  if (status >= 300 && status < 400) return 'badge-info'
-  if (status >= 400 && status < 500) return 'badge-warning'
-  if (status >= 500) return 'badge-danger'
-  return 'badge-secondary'
+  if (status >= 200 && status < 300) return 's2xx'
+  if (status >= 300 && status < 400) return 's3xx'
+  if (status >= 400 && status < 500) return 's4xx'
+  if (status >= 500) return 's5xx'
+  return 's1xx'
 }
 
 /**
