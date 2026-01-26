@@ -167,14 +167,7 @@ describe('ResultsFilters Component', () => {
         { url: 'https://example.com/c.m', fileType: 'm' }
       ]
 
-      const wrapper = mount(ResultsFilters, {
-        props: {
-          pages,
-          selectedStatusCodes: [],
-          selectedFileTypes: [],
-          searchTerm: ''
-        }
-      })
+      const wrapper = createWrapper({ pages })
 
       // Should have file type checkboxes
       const checkboxes = wrapper.findAll('input[type="checkbox"]')
@@ -184,14 +177,7 @@ describe('ResultsFilters Component', () => {
 
   describe('Search Filter', () => {
     it('displays search input field', () => {
-      const wrapper = mount(ResultsFilters, {
-        props: {
-          pages: mockPages,
-          selectedStatusCodes: [],
-          selectedFileTypes: [],
-          searchTerm: ''
-        }
-      })
+      const wrapper = createWrapper()
 
       const searchInput = wrapper.find('.search-input')
       expect(searchInput.exists()).toBe(true)
@@ -212,14 +198,7 @@ describe('ResultsFilters Component', () => {
     })
 
     it('updates search term on input', async () => {
-      const wrapper = mount(ResultsFilters, {
-        props: {
-          pages: mockPages,
-          selectedStatusCodes: [],
-          selectedFileTypes: [],
-          searchTerm: ''
-        }
-      })
+      const wrapper = createWrapper()
 
       const searchInput = wrapper.find('.search-input')
       await searchInput.setValue('test search')
