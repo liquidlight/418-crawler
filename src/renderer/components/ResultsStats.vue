@@ -89,7 +89,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { getFileType } from '../utils/url.js'
 
 export default {
@@ -99,15 +99,28 @@ export default {
   },
   emits: ['filter-status', 'filter-filetype', 'filter-external'],
   setup(props) {
+    // Force re-computation when pages prop changes
+    // This is needed for shallowRef tracking in parent
+    const pageChangeKey = ref(0)
+
+    watch(
+      () => props.pages?.length,
+      () => {
+        pageChangeKey.value++
+      }
+    )
     const externalLinkCount = computed(() => {
+      pageChangeKey.value // Track changes
       return props.pages.reduce((sum, page) => sum + (page.externalLinks?.length || 0), 0)
     })
 
     const pendingCount = computed(() => {
+      pageChangeKey.value // Track changes
       return props.pages.filter(p => !p.isCrawled).length
     })
 
     const fileTypeList = computed(() => {
+      pageChangeKey.value // Track changes
       const types = new Set()
       props.pages.forEach(page => {
         if (page.isCrawled) {
@@ -119,6 +132,7 @@ export default {
     })
 
     const statusDistribution = computed(() => {
+      pageChangeKey.value // Track changes
       const dist = {
         '1xx': 0,
         '2xx': 0,
@@ -189,6 +203,7 @@ export default {
     }
 
     return {
+      pageChangeKey, // Force re-computation on prop changes
       externalLinkCount,
       pendingCount,
       statusDistribution,
