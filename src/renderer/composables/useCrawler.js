@@ -45,7 +45,7 @@ export function useCrawler() {
   // Helper to trigger pages reactivity
   function updatePages() {
     pagesVersion.value++
-    updatePages()
+    triggerRef(pages)
   }
 
   // Computed properties
