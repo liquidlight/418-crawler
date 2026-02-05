@@ -3,7 +3,7 @@ import { isSameDomain, normalizeUrl } from '../utils/url.js'
 
 /**
  * Composable for managing crawl data using localStorage as a buffer
- * Pages are stored in localStorage during crawl, then flushed to JSON registry
+ * Pages are stored in-memory cache during crawl, then flushed to localStorage explicitly
  */
 export function useDatabase() {
   const isInitialized = ref(false)
@@ -11,11 +11,17 @@ export function useDatabase() {
   const PAGES_KEY = 'crawl-pages-buffer'
   const STATE_KEY = 'crawl-state-buffer'
 
+  // In-memory cache to avoid parse/stringify per operation
+  let pagesCache = []
+
   /**
-   * Initialize the buffer (localStorage)
+   * Initialize the buffer (load cache from localStorage)
    */
   async function init() {
     try {
+      // Load pages from localStorage into cache on init
+      const stored = localStorage.getItem(PAGES_KEY)
+      pagesCache = stored ? JSON.parse(stored) : []
       isInitialized.value = true
       error.value = null
     } catch (e) {
@@ -26,7 +32,7 @@ export function useDatabase() {
   }
 
   /**
-   * Save a page to the localStorage buffer
+   * Save a page to the in-memory cache (NOT to localStorage yet)
    */
   async function savePage(page) {
     try {
@@ -36,19 +42,14 @@ export function useDatabase() {
         pageData.normalizedUrl = normalizeUrl(pageData.url) || pageData.url
       }
 
-      // Get existing pages from buffer
-      let pages = getPageBuffer()
-
-      // Update or add page
-      const index = pages.findIndex(p => p.normalizedUrl === pageData.normalizedUrl)
+      // Update or add page in cache
+      const index = pagesCache.findIndex(p => p.normalizedUrl === pageData.normalizedUrl)
       if (index >= 0) {
-        pages[index] = pageData
+        pagesCache[index] = pageData
       } else {
-        pages.push(pageData)
+        pagesCache.push(pageData)
       }
 
-      // Save back to buffer
-      localStorage.setItem(PAGES_KEY, JSON.stringify(pages))
       return pageData.normalizedUrl
     } catch (e) {
       console.error('Error saving page:', e)
@@ -57,31 +58,37 @@ export function useDatabase() {
   }
 
   /**
-   * Get a page from the buffer by URL
+   * Get a page from the cache by URL
    */
   async function getPage(url) {
     const normalized = normalizeUrl(url) || url
-    const pages = getPageBuffer()
-    return pages.find(p => p.normalizedUrl === normalized) || null
+    return pagesCache.find(p => p.normalizedUrl === normalized) || null
   }
 
   /**
-   * Get all pages from the buffer
+   * Get all pages from the cache
    */
   async function getAllPages() {
-    return getPageBuffer()
+    return pagesCache
   }
 
   /**
-   * Internal: Get pages buffer from localStorage
+   * Internal: Get pages cache (no localStorage read)
    */
   function getPageBuffer() {
+    return pagesCache
+  }
+
+  /**
+   * Flush cache to localStorage (called explicitly)
+   */
+  async function flushToStorage() {
     try {
-      const data = localStorage.getItem(PAGES_KEY)
-      return data ? JSON.parse(data) : []
+      localStorage.setItem(PAGES_KEY, JSON.stringify(pagesCache))
+      return true
     } catch (e) {
-      console.warn('Error reading page buffer:', e)
-      return []
+      console.error('Error flushing pages to storage:', e)
+      throw e
     }
   }
 
@@ -94,21 +101,19 @@ export function useDatabase() {
   }
 
   /**
-   * Delete a page from the buffer
+   * Delete a page from the cache
    */
   async function deletePage(url) {
     const normalized = normalizeUrl(url) || url
-    let pages = getPageBuffer()
-    pages = pages.filter(p => p.normalizedUrl !== normalized)
-    localStorage.setItem(PAGES_KEY, JSON.stringify(pages))
+    pagesCache = pagesCache.filter(p => p.normalizedUrl !== normalized)
     return true
   }
 
   /**
-   * Clear all pages from the buffer
+   * Clear all pages from the cache
    */
   async function clearPages() {
-    localStorage.removeItem(PAGES_KEY)
+    pagesCache = []
     return true
   }
 
@@ -120,7 +125,7 @@ export function useDatabase() {
     const normalizedTo = normalizeUrl(toUrl) || toUrl
     const normalizedFrom = normalizeUrl(fromUrl) || fromUrl
 
-    let page = await getPage(normalizedTo)
+    let page = pagesCache.find(p => p.normalizedUrl === normalizedTo)
     if (!page) {
       // Determine if this URL is external using actual root URL for consistency
       // Use the actual root URL from crawler state instead of reconstructing it
@@ -140,6 +145,7 @@ export function useDatabase() {
         externalLinks: [],
         assets: []
       }
+      pagesCache.push(page)
     } else {
       // Add to existing page's in-links
       if (!page.inLinks) page.inLinks = []
@@ -148,7 +154,52 @@ export function useDatabase() {
       }
     }
 
-    return await savePage(page)
+    return normalizedTo
+  }
+
+  /**
+   * Add multiple in-links in a batch (for performance)
+   * Updates all toUrls with fromUrl in a single pass
+   */
+  async function addInLinksBatch(fromUrl, toUrls, baseDomain = '', rootUrl = '') {
+    const normalizedFrom = normalizeUrl(fromUrl) || fromUrl
+    const changedPages = []
+
+    for (const toUrl of toUrls) {
+      const normalizedTo = normalizeUrl(toUrl) || toUrl
+
+      let page = pagesCache.find(p => p.normalizedUrl === normalizedTo)
+      if (!page) {
+        // Determine if this URL is external
+        const baseUrlForCheck = rootUrl || (baseDomain ? `https://${baseDomain}` : fromUrl)
+        const isExternal = !isSameDomain(normalizedTo, baseUrlForCheck, baseDomain)
+
+        // Create a new placeholder page
+        page = {
+          url: normalizedTo,
+          normalizedUrl: normalizedTo,
+          domain: baseDomain,
+          statusCode: null,
+          isCrawled: false,
+          isExternal,
+          inLinks: [normalizedFrom],
+          outLinks: [],
+          externalLinks: [],
+          assets: []
+        }
+        pagesCache.push(page)
+        changedPages.push(normalizedTo)
+      } else {
+        // Add to existing page's in-links
+        if (!page.inLinks) page.inLinks = []
+        if (!page.inLinks.includes(normalizedFrom)) {
+          page.inLinks.push(normalizedFrom)
+          changedPages.push(normalizedTo)
+        }
+      }
+    }
+
+    return changedPages
   }
 
   /**
@@ -213,6 +264,7 @@ export function useDatabase() {
    * Clear entire buffer (all pages and state)
    */
   async function clearAll() {
+    pagesCache = []
     localStorage.removeItem(PAGES_KEY)
     localStorage.removeItem(STATE_KEY)
     return true
@@ -284,6 +336,8 @@ export function useDatabase() {
     deletePage,
     clearPages,
     addInLink,
+    addInLinksBatch,
+    flushToStorage,
     saveCrawlState,
     getCrawlState,
     deleteCrawlState,

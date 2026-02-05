@@ -195,6 +195,7 @@ export function useCrawler() {
     if (crawlerInstance && crawlState.value.isActive) {
       crawlerInstance.pause()
       crawlState.value.isPaused = true
+      await db.flushToStorage()
       await db.saveCrawlState(crawlerInstance.getSaveableState())
       await saveProgress()
     }
@@ -221,6 +222,7 @@ export function useCrawler() {
       crawlerInstance.stop()
       // We don't manually set isActive=false here, we let handleProgress do it
       // masking the actual winding-down state of the crawler
+      await db.flushToStorage()
       await db.saveCrawlState(crawlerInstance.getSaveableState())
       await saveProgress()
     }
@@ -725,6 +727,7 @@ export function useCrawler() {
   async function handleComplete(state) {
     isStopping.value = false
     updateCrawlState(state)
+    await db.flushToStorage()
     await db.saveCrawlState(crawlerInstance.getSaveableState())
 
     // Stop auto-save and do final save to app storage
