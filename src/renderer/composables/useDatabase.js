@@ -81,11 +81,27 @@ export function useDatabase() {
 
   /**
    * Flush cache to localStorage (called explicitly)
+   * Handles quota exceeded by keeping only recent pages
    */
   async function flushToStorage() {
     try {
-      localStorage.setItem(PAGES_KEY, JSON.stringify(pagesCache))
-      return true
+      const fullJson = JSON.stringify(pagesCache)
+
+      try {
+        localStorage.setItem(PAGES_KEY, fullJson)
+        return true
+      } catch (quotaError) {
+        if (quotaError.name === 'QuotaExceededError') {
+          // If full save fails, keep only the most recent pages
+          console.warn(`Storage quota exceeded. Keeping last 500 of ${pagesCache.length} pages`)
+
+          const recentPages = pagesCache.slice(-500)
+          const recentJson = JSON.stringify(recentPages)
+          localStorage.setItem(PAGES_KEY, recentJson)
+          return true
+        }
+        throw quotaError
+      }
     } catch (e) {
       console.error('Error flushing pages to storage:', e)
       throw e
