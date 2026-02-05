@@ -45,7 +45,7 @@ export function useCrawler() {
   // Helper to trigger pages reactivity
   function updatePages() {
     pagesVersion.value++
-    updatePages()
+    triggerRef(pages)
   }
 
   // Computed properties
@@ -298,7 +298,7 @@ export function useCrawler() {
             }
           }
           console.log(`Reset ${resetCount} pages in memory out of ${pages.value.length} total pages`)
-          updatePages()
+          triggerRef(pages)
 
           // Save the reset pages back to the database to keep in sync
           let savedCount = 0
@@ -351,7 +351,7 @@ export function useCrawler() {
             }
           }
           console.log(`Added ${addedToArrayCount} discovered URLs to pages array`)
-          updatePages()
+          triggerRef(pages)
 
           console.log(`Re-queued ${queuedCount} internal pending URLs for processing`)
           console.log(`Queue size after: ${crawlerInstance.state.queue.length}`)
@@ -657,7 +657,7 @@ export function useCrawler() {
       }
 
       if (anyChanged) {
-        updatePages()
+        triggerRef(pages)
       }
     }
     // Regular page crawled
@@ -693,7 +693,7 @@ export function useCrawler() {
         pageIndexMap.set(page.url, pages.value.length - 1)
       }
 
-      updatePages()
+      triggerRef(pages)
     }
   }
 
@@ -740,7 +740,7 @@ export function useCrawler() {
     const newIndex = pages.value.length
     pages.value.push(markedPage)
     pageIndexMap.set(normalizedUrl, newIndex)
-    updatePages()
+    triggerRef(pages)
   }
 
   /**
@@ -823,7 +823,7 @@ export function useCrawler() {
 
       // Update in pages array using direct mutation
       pages.value[pageIndex] = markRaw(reQueuedPage)
-      updatePages()
+      triggerRef(pages)
 
       // Add back to crawler queue if crawler is running
       if (crawlerInstance && crawlerInstance.state) {
@@ -845,7 +845,6 @@ export function useCrawler() {
     // State
     crawlState,
     pages,
-    pagesVersion,
     error,
     isInitialized,
 

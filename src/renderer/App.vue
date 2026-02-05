@@ -191,6 +191,7 @@
           <!-- Total Pages / Status Distribution -->
           <ResultsStats
             :pages="pages"
+            :pages-version="crawler.pagesVersion"
             @filter-status="handleFilterStatus"
             @filter-filetype="handleFilterFileType"
             @filter-external="handleFilterExternal"
