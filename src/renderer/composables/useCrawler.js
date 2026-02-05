@@ -833,15 +833,6 @@ export function useCrawler() {
     }
   }
 
-  // Auto-save state periodically when crawling
-  watch(
-    () => crawlState.value.visitedCount,
-    async () => {
-      if (crawlerInstance && crawlState.value.isActive) {
-        await db.saveCrawlState(crawlerInstance.getSaveableState())
-      }
-    }
-  )
 
   return {
     // State

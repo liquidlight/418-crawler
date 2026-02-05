@@ -1,6 +1,6 @@
-import { ref, readonly } from 'vue'
+import { shallowRef, triggerRef, readonly } from 'vue'
 
-const logs = ref([])
+const logs = shallowRef([])
 const MAX_LOGS = 1000
 
 export function useLogger() {
@@ -27,10 +27,13 @@ export function useLogger() {
     if (logs.value.length > MAX_LOGS) {
       logs.value.pop()
     }
+
+    triggerRef(logs)
   }
 
   function clearLogs() {
     logs.value = []
+    triggerRef(logs)
   }
 
   return {

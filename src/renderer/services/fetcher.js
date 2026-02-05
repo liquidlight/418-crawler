@@ -11,32 +11,33 @@ export async function fetchUrl(url, options = {}) {
   const timeout = options.timeout || CRAWLER_DEFAULTS.REQUEST_TIMEOUT
   const proxyUrl = await getProxyUrl()
 
+  // Use AbortController for timeout instead of race condition
+  const controller = new AbortController()
+  let timeoutHandle
+
   try {
     // Add a delay if specified
     if (options.delay) {
       await new Promise(resolve => setTimeout(resolve, options.delay))
     }
 
-    // Create a timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`Request timeout after ${timeout}ms`))
-      }, timeout)
-    })
+    // Set up abort timeout (cleared on completion)
+    timeoutHandle = setTimeout(() => {
+      controller.abort()
+    }, timeout)
 
-    // Fetch from proxy
-    const fetchPromise = fetch(proxyUrl, {
+    // Fetch from proxy with abort signal
+    const proxyResponse = await fetch(proxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, options })
+      body: JSON.stringify({ url, options }),
+      signal: controller.signal
     })
-
-    // Race between fetch and timeout
-    const proxyResponse = await Promise.race([fetchPromise, timeoutPromise])
 
     if (!proxyResponse.ok) {
       // Handle specific proxy errors gracefully
       const responseTime = Date.now() - startTime
+      clearTimeout(timeoutHandle)
 
       if (proxyResponse.status === 400) {
         // 400 Bad Request from proxy often means the site is blocking access
@@ -73,6 +74,7 @@ export async function fetchUrl(url, options = {}) {
 
     const result = await proxyResponse.json()
     const responseTime = Date.now() - startTime
+    clearTimeout(timeoutHandle)
 
     return {
       ...result,
@@ -83,11 +85,16 @@ export async function fetchUrl(url, options = {}) {
     }
   } catch (error) {
     const responseTime = Date.now() - startTime
+    clearTimeout(timeoutHandle)
 
-    // Extract error details from various error types
+    // Check if this was an abort error (timeout)
     let errorDetails = 'Unknown error'
     if (error instanceof Error) {
-      errorDetails = error.message
+      if (error.name === 'AbortError') {
+        errorDetails = `Request timeout after ${timeout}ms`
+      } else {
+        errorDetails = error.message
+      }
     } else if (typeof error === 'object' && error !== null) {
       errorDetails = error.toString()
     } else if (typeof error === 'string') {
