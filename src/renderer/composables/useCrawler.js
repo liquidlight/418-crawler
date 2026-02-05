@@ -1,4 +1,4 @@
-import { ref, computed, watch, markRaw, shallowRef } from 'vue'
+import { ref, computed, watch, markRaw, shallowRef, triggerRef } from 'vue'
 import { Crawler } from '../services/crawler.js'
 import { useDatabase } from './useDatabase.js'
 import { useJsonStorage } from './useJsonStorage.js'
@@ -35,6 +35,7 @@ export function useCrawler() {
   const crawlState = ref({ ...DEFAULT_CRAWL_STATE })
 
   const pages = shallowRef([])
+  const pageIndexMap = new Map() // Map<url, array_index> for O(1) lookups
   const error = ref(null)
   const isInitialized = ref(false)
   const isStopping = ref(false)
@@ -270,14 +271,14 @@ export function useCrawler() {
             queuedCount++
           })
 
-          // Also update the pages in memory to mark them as not crawled
+          // Also update the pages in memory to mark them as not crawled - use direct mutation
           let resetCount = 0
-          const updatedPages = pages.value.map(page => {
-            if (requeuingUrls.has(page.url)) {
-              console.log(`Resetting page in array: ${page.url}`)
-              resetCount++
-              return markRaw({
-                ...page,
+          for (const pageUrl of requeuingUrls) {
+            const pageIndex = pageIndexMap.get(pageUrl)
+            if (pageIndex !== undefined && pages.value[pageIndex]) {
+              console.log(`Resetting page in array: ${pageUrl}`)
+              pages.value[pageIndex] = markRaw({
+                ...pages.value[pageIndex],
                 isCrawled: false,
                 statusCode: null,
                 title: null,
@@ -286,11 +287,11 @@ export function useCrawler() {
                 redirectUrl: null,
                 responseTime: null
               })
+              resetCount++
             }
-            return page
-          })
+          }
           console.log(`Reset ${resetCount} pages in memory out of ${pages.value.length} total pages`)
-          pages.value = updatedPages
+          triggerRef(pages)
 
           // Save the reset pages back to the database to keep in sync
           let savedCount = 0
@@ -307,8 +308,7 @@ export function useCrawler() {
           console.log(`Discovered URLs not in pages array: ${requeuingUrls.size - resetCount}`)
           let addedToArrayCount = 0
           for (const url of requeuingUrls) {
-            const inArray = pages.value.some(p => p.url === url)
-            if (!inArray) {
+            if (!pageIndexMap.has(url)) {
               console.log(`Resetting discovered URL in DB and array: ${url}`)
               // Create a page object for this discovered URL
               const discoveredPage = {
@@ -337,11 +337,14 @@ export function useCrawler() {
               // Save to database
               await db.savePage(discoveredPage)
               // Also add to pages array so crawler can update it
-              pages.value = [...pages.value, markRaw(discoveredPage)]
+              const newIndex = pages.value.length
+              pages.value.push(markRaw(discoveredPage))
+              pageIndexMap.set(url, newIndex)
               addedToArrayCount++
             }
           }
           console.log(`Added ${addedToArrayCount} discovered URLs to pages array`)
+          triggerRef(pages)
 
           console.log(`Re-queued ${queuedCount} internal pending URLs for processing`)
           console.log(`Queue size after: ${crawlerInstance.state.queue.length}`)
@@ -377,6 +380,7 @@ export function useCrawler() {
       stopAutoSave()
       await db.clearAll()
       pages.value = []
+      pageIndexMap.clear()
       crawlState.value = { ...DEFAULT_CRAWL_STATE }
       crawlerInstance = null
       currentCrawlId = null
@@ -397,6 +401,12 @@ export function useCrawler() {
       const loadedPages = await db.getAllPages()
       const markedPages = loadedPages.map(p => markRaw(p))
       pages.value = markedPages
+
+      // Rebuild index map after loading
+      pageIndexMap.clear()
+      markedPages.forEach((page, index) => {
+        pageIndexMap.set(page.url, index)
+      })
     } catch (e) {
       console.error('Failed to load pages:', e)
     }
@@ -622,20 +632,25 @@ export function useCrawler() {
     if (page.type === 'url-discovered') {
       await addDiscoveredUrl(page.url, page.depth, page.isExternal)
     }
-    // Check if this is an in-link update
-    else if (page.type === 'inlink-update') {
-      await db.addInLink(page.toUrl, page.fromUrl, crawlState.value.baseDomain, crawlState.value.rootUrl)
-      // Reload the page from database to get updated inLinks
-      // Use normalizeUrl(page.toUrl) because addInLink uses that as the key
-      const lookupUrl = normalizeUrl(page.toUrl) || page.toUrl
-      const updatedPage = await db.getPage(lookupUrl)
-      if (updatedPage) {
-        const existingIndex = pages.value.findIndex(p => p.url === updatedPage.url)
-        if (existingIndex >= 0) {
-          const updated = [...pages.value]
-          updated[existingIndex] = markRaw(updatedPage)
-          pages.value = updated
+    // Check if this is a batch inlink update
+    else if (page.type === 'inlinks-batch') {
+      const changedUrls = await db.addInLinksBatch(page.fromUrl, page.toUrls, crawlState.value.baseDomain, crawlState.value.rootUrl)
+
+      // Update changed pages in the array - single triggerRef after all updates
+      let anyChanged = false
+      for (const changedUrl of changedUrls) {
+        const existingIndex = pageIndexMap.get(changedUrl)
+        if (existingIndex !== undefined && pages.value[existingIndex]) {
+          const updatedPage = await db.getPage(changedUrl)
+          if (updatedPage) {
+            pages.value[existingIndex] = markRaw(updatedPage)
+            anyChanged = true
+          }
         }
+      }
+
+      if (anyChanged) {
+        triggerRef(pages)
       }
     }
     // Regular page crawled
@@ -658,16 +673,20 @@ export function useCrawler() {
       // Save page to database
       await db.savePage(page)
 
-      // Add to pages array - use markRaw to prevent circular references in reactivity
-      const existingIndex = pages.value.findIndex(p => p.url === page.url)
+      // Add to pages array using direct mutation + triggerRef
+      const markedPage = markRaw(page)
+      const existingIndex = pageIndexMap.get(page.url)
 
-      if (existingIndex >= 0) {
-        const updated = [...pages.value]
-        updated[existingIndex] = markRaw(page)
-        pages.value = updated
+      if (existingIndex !== undefined && pages.value[existingIndex]) {
+        // Update existing - direct mutation
+        pages.value[existingIndex] = markedPage
       } else {
-        pages.value = [...pages.value, markRaw(page)]
+        // Add new - direct mutation
+        pages.value.push(markedPage)
+        pageIndexMap.set(page.url, pages.value.length - 1)
       }
+
+      triggerRef(pages)
     }
   }
 
@@ -677,9 +696,8 @@ export function useCrawler() {
   async function addDiscoveredUrl(url, depth = 0, isExternal = false) {
     const normalizedUrl = normalizeUrl(url) || url
 
-    // Check if URL already exists in pages (by canonical url)
-    const exists = pages.value.find(p => p.url === normalizedUrl)
-    if (exists) return
+    // Check if URL already exists using index map for O(1) lookup
+    if (pageIndexMap.has(normalizedUrl)) return
 
     // Create a pending page placeholder
     const pendingPage = {
@@ -710,7 +728,12 @@ export function useCrawler() {
     // Save to database so orphaned URL detection can find it
     await db.savePage(pendingPage)
 
-    pages.value = [...pages.value, markRaw(pendingPage)]
+    // Add using direct mutation + triggerRef
+    const markedPage = markRaw(pendingPage)
+    const newIndex = pages.value.length
+    pages.value.push(markedPage)
+    pageIndexMap.set(normalizedUrl, newIndex)
+    triggerRef(pages)
   }
 
   /**
@@ -768,9 +791,9 @@ export function useCrawler() {
     try {
       const normalizedUrl = normalizeUrl(url) || url
 
-      // Find the page in the pages array
-      const pageIndex = pages.value.findIndex(p => p.url === normalizedUrl)
-      if (pageIndex === -1) {
+      // Find the page using index map for O(1) lookup
+      const pageIndex = pageIndexMap.get(normalizedUrl)
+      if (pageIndex === undefined) {
         throw new Error('Page not found')
       }
 
@@ -791,10 +814,9 @@ export function useCrawler() {
       // Update in database
       await db.savePage(reQueuedPage)
 
-      // Update in pages array
-      const updated = [...pages.value]
-      updated[pageIndex] = markRaw(reQueuedPage)
-      pages.value = updated
+      // Update in pages array using direct mutation
+      pages.value[pageIndex] = markRaw(reQueuedPage)
+      triggerRef(pages)
 
       // Add back to crawler queue if crawler is running
       if (crawlerInstance && crawlerInstance.state) {

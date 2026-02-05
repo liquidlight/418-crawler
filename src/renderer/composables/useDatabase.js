@@ -314,7 +314,8 @@ export function useDatabase() {
       const data = await exportData()
       const result = registrySaveFunction(data)
       if (result.success) {
-        // Clear the buffer after successful flush
+        // Clear the cache and localStorage after successful flush
+        pagesCache = []
         localStorage.removeItem(PAGES_KEY)
         localStorage.removeItem(STATE_KEY)
       }
