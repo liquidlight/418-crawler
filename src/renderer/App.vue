@@ -435,7 +435,15 @@ export default {
 
     const savedCrawls = computed(() => crawler.getSavedCrawls())
 
+    // Keep pages reactivity active at all times (parent level)
+    // This ensures child components receive live updates even when not visible
+    const pagesUpdateTracker = computed(() => {
+      return crawler.pages.value.length // Track to keep computed active
+    })
+
     const statusCodeList = computed(() => {
+      pagesUpdateTracker.value // Depend on tracker to ensure updates
+      const codes = crawler.pages.value
       const codes = crawler.pages.value
         .map(page => page.statusCode)
         .filter(code => code !== null && code !== undefined)
@@ -444,6 +452,7 @@ export default {
     })
 
     const fileTypeList = computed(() => {
+      pagesUpdateTracker.value // Depend on tracker to ensure updates
       const types = new Set()
       crawler.pages.value.forEach(page => {
         if (page.isCrawled) {
@@ -980,6 +989,7 @@ export default {
       landingPageUrl,
       openDropdown,
       savedCrawls,
+      pagesUpdateTracker,
       statusCodeList,
       fileTypeList,
       getStatusCount,

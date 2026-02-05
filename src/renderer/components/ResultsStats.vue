@@ -104,10 +104,11 @@ export default {
     const pageChangeKey = ref(0)
 
     watch(
-      () => props.pages?.length,
+      () => props.pages,
       () => {
         pageChangeKey.value++
-      }
+      },
+      { deep: false } // Shallow watch - just track array reference changes
     )
     const externalLinkCount = computed(() => {
       pageChangeKey.value // Track changes
