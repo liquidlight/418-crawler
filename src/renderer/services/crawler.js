@@ -427,25 +427,26 @@ export class Crawler {
   }
 
   /**
-   * Updates in-links for discovered URLs
+   * Updates in-links for discovered URLs (batch)
    */
   async updateInLinks(fromUrl, outLinks, externalLinks) {
     // All discovered links should have their in-links updated
     const allLinks = [...outLinks, ...externalLinks]
 
-    for (const toUrl of allLinks) {
-      try {
-        // Notify about in-link discovery
-        // This will be used to update pages in the database
-        // Await to ensure database updates complete before continuing
-        await this.onPageProcessed({
-          type: 'inlink-update',
-          toUrl,
-          fromUrl
-        })
-      } catch (error) {
-        console.error(`Error updating in-links for ${toUrl}:`, error)
-      }
+    if (allLinks.length === 0) {
+      return
+    }
+
+    try {
+      // Emit single batch event for all links
+      // This will be used to update pages in the database in one pass
+      await this.onPageProcessed({
+        type: 'inlinks-batch',
+        fromUrl,
+        toUrls: allLinks
+      })
+    } catch (error) {
+      console.error(`Error updating in-links for ${fromUrl}:`, error)
     }
   }
 
