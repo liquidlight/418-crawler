@@ -444,7 +444,6 @@ export default {
     const statusCodeList = computed(() => {
       pagesUpdateTracker.value // Depend on tracker to ensure updates
       const codes = crawler.pages.value
-      const codes = crawler.pages.value
         .map(page => page.statusCode)
         .filter(code => code !== null && code !== undefined)
       const grouped = groupStatusCodesByHundreds(codes)
