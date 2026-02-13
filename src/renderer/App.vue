@@ -126,6 +126,13 @@
               Export reports
             </div>
           </div>
+
+          <AdvancedOptions
+            :url="landingPageUrl"
+            :disabled="false"
+            @cookies-updated="handleCookiesUpdated"
+            @cookies-cleared="handleCookiesCleared"
+          />
         </div>
 
         <div class="previous-section">
@@ -408,6 +415,7 @@ import PageDetailModal from './components/PageDetailModal.vue'
 import ErrorDetailsModal from './components/ErrorDetailsModal.vue'
 import LogViewer from './components/LogViewer.vue'
 import PreviousCrawls from './components/PreviousCrawls.vue'
+import AdvancedOptions from './components/AdvancedOptions.vue'
 
 export default {
   name: 'App',
@@ -417,7 +425,8 @@ export default {
     PageDetailModal,
     ErrorDetailsModal,
     LogViewer,
-    PreviousCrawls
+    PreviousCrawls,
+    AdvancedOptions
   },
   setup() {
     const crawler = useCrawler()
@@ -433,6 +442,9 @@ export default {
     const openDropdown = ref(null) // 'status', 'external', 'filetype', or null
     const sortBy = ref('row') // 'row', 'url', 'title', or 'time'
     const sortOrder = ref('desc') // 'asc' or 'desc'
+
+    // Cookie authentication state
+    const cookieState = ref({ cookies: [], domain: '' })
 
     const savedCrawls = computed(() => crawler.getSavedCrawls())
 
@@ -685,7 +697,7 @@ export default {
       try {
         error.value = null
         selectedPage.value = null
-        await crawler.startCrawl(url)
+        await crawler.startCrawl(url, { cookies: cookieState.value.cookies })
       } catch (e) {
         error.value = e.message
       }
@@ -825,6 +837,16 @@ export default {
       } catch (e) {
         error.value = 'Failed to clear crawls: ' + e.message
       }
+    }
+
+    function handleCookiesUpdated({ cookies, domain, count }) {
+      cookieState.value = { cookies, domain }
+      console.log(`[App] Cookies updated: ${count} cookies for ${domain}`)
+    }
+
+    function handleCookiesCleared() {
+      cookieState.value = { cookies: [], domain: '' }
+      console.log('[App] Cookies cleared')
     }
 
     function handleNavigateToPage(url) {
@@ -1052,7 +1074,11 @@ export default {
       handleFilterFileType,
       handleFilterExternal,
       handleRequeueLink,
-      clearError
+      clearError,
+      handleCookiesUpdated,
+      handleCookiesCleared,
+      cookieState,
+      landingPageUrl
     }
   }
 }

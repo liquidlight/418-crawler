@@ -8,11 +8,110 @@ let mainWindow
 let proxyServer
 let devServerUrl = 'http://localhost:5173'
 let proxyPort = 8080
+let storedAuthCookies = []
 
 // IPC handler to get proxy port
 ipcMain.handle('get-proxy-port', () => {
   console.log(`[Electron IPC] Returning proxy port: ${proxyPort}`)
   return proxyPort
+})
+
+// IPC handler to open auth browser and capture cookies
+ipcMain.handle('open-auth-browser', async (event, url) => {
+  try {
+    // Create a new BrowserWindow with its own session (partition)
+    const authWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      parent: mainWindow,
+      modal: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        // Use a dedicated partition so cookies don't leak into the main app
+        partition: 'persist:auth-session'
+      }
+    })
+
+    // Load the target URL
+    authWindow.loadURL(url)
+
+    // Return a promise that resolves when the window is closed
+    return new Promise((resolve) => {
+      authWindow.on('closed', async () => {
+        try {
+          // Extract all cookies from the auth session
+          const { session } = require('electron')
+          const authSession = session.fromPartition('persist:auth-session')
+          const cookies = await authSession.cookies.get({})
+
+          // Filter to cookies relevant to the target domain
+          const targetDomain = new URL(url).hostname
+          const relevantCookies = cookies.filter(cookie => {
+            // Match cookies whose domain applies to the target
+            // cookie.domain may be ".example.com" or "example.com"
+            const cookieDomain = cookie.domain.startsWith('.')
+              ? cookie.domain.substring(1)
+              : cookie.domain
+            return targetDomain === cookieDomain || targetDomain.endsWith('.' + cookieDomain)
+          })
+
+          // Store cookies in memory for the proxy to use
+          storedAuthCookies = relevantCookies
+
+          console.log(`[Auth Browser] Captured ${relevantCookies.length} cookies for ${targetDomain}`)
+
+          // Clear the auth session to avoid stale data on next use
+          await authSession.clearStorageData()
+
+          resolve({
+            count: relevantCookies.length,
+            domain: targetDomain,
+            // Return serialised cookies (name, value, domain, path, etc.)
+            cookies: relevantCookies.map(c => ({
+              name: c.name,
+              value: c.value,
+              domain: c.domain,
+              path: c.path,
+              secure: c.secure,
+              httpOnly: c.httpOnly,
+              sameSite: c.sameSite,
+              expirationDate: c.expirationDate
+            }))
+          })
+        } catch (error) {
+          console.error('[Auth Browser] Error capturing cookies:', error)
+          resolve({
+            count: 0,
+            domain: '',
+            cookies: [],
+            error: error.message
+          })
+        }
+      })
+    })
+  } catch (error) {
+    console.error('[Auth Browser] Error opening auth browser:', error)
+    return {
+      count: 0,
+      domain: '',
+      cookies: [],
+      error: error.message
+    }
+  }
+})
+
+// IPC handler to get stored cookies
+ipcMain.handle('get-stored-cookies', () => {
+  console.log(`[Electron IPC] Returning ${storedAuthCookies.length} stored cookies`)
+  return storedAuthCookies
+})
+
+// IPC handler to clear stored cookies
+ipcMain.handle('clear-stored-cookies', () => {
+  console.log('[Electron IPC] Clearing stored cookies')
+  storedAuthCookies = []
+  return { success: true }
 })
 
 // Find an available port

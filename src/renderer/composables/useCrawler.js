@@ -131,7 +131,7 @@ export function useCrawler() {
   /**
    * Start a new crawl
    */
-  async function startCrawl(url) {
+  async function startCrawl(url, options = {}) {
     try {
       error.value = null
 
@@ -170,6 +170,7 @@ export function useCrawler() {
         maxConcurrent: 5,
         requestDelay: 100,
         requestTimeout: 30000,
+        cookies: options.cookies || [],
         onProgress: handleProgress,
         onPageProcessed: handlePageProcessed,
         onError: handleError,

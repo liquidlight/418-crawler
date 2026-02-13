@@ -39,9 +39,38 @@ app.get('/health', (req, res) => {
  *   data: string - response body as text
  * }
  */
+/**
+ * Match a cookie to a request URL based on domain and path
+ * @param {object} cookie - Cookie object with domain and path properties
+ * @param {string} requestUrl - The URL being requested
+ * @returns {boolean} True if the cookie should be sent with this request
+ */
+function matchCookieToRequest(cookie, requestUrl) {
+  try {
+    const url = new URL(requestUrl)
+    const requestHost = url.hostname
+    const requestPath = url.pathname
+
+    // Domain matching
+    const cookieDomain = cookie.domain.startsWith('.')
+      ? cookie.domain.substring(1)
+      : cookie.domain
+    const domainMatch = requestHost === cookieDomain || requestHost.endsWith('.' + cookieDomain)
+
+    // Path matching
+    const cookiePath = cookie.path || '/'
+    const pathMatch = requestPath.startsWith(cookiePath)
+
+    return domainMatch && pathMatch
+  } catch (error) {
+    console.error('Error matching cookie:', error)
+    return false
+  }
+}
+
 app.post('/fetch', async (req, res) => {
   try {
-    const { url, options = {} } = req.body
+    const { url, options = {}, cookies = [] } = req.body
 
     if (!url) {
       return res.status(400).json({
@@ -74,6 +103,19 @@ app.post('/fetch', async (req, res) => {
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         ...options.headers
+      }
+    }
+
+    // Inject cookies if provided, with domain and path matching
+    if (cookies && Array.isArray(cookies) && cookies.length > 0) {
+      const matchingCookies = cookies.filter(c => matchCookieToRequest(c, url))
+
+      if (matchingCookies.length > 0) {
+        const cookieHeader = matchingCookies
+          .map(c => `${c.name}=${c.value}`)
+          .join('; ')
+        fetchOptions.headers['Cookie'] = cookieHeader
+        console.log(`[Proxy] Injecting ${matchingCookies.length} cookies for ${url}`)
       }
     }
 

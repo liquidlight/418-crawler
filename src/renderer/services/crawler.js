@@ -33,6 +33,7 @@ export class Crawler {
     this.requestDelay = options.requestDelay || CRAWLER_DEFAULTS.REQUEST_DELAY
     this.requestTimeout = options.requestTimeout || CRAWLER_DEFAULTS.REQUEST_TIMEOUT
     this.crawlResources = options.crawlResources !== undefined ? options.crawlResources : CRAWLER_DEFAULTS.CRAWL_RESOURCES
+    this.cookies = options.cookies || []
 
     // Event handlers
     this.onProgress = options.onProgress || (() => {})
@@ -224,7 +225,8 @@ export class Crawler {
       // Fetch the page
       const response = await fetchWithRetry(url, {
         timeout: this.requestTimeout,
-        delay: this.requestDelay
+        delay: this.requestDelay,
+        cookies: this.cookies
       })
 
       if (!response) {
